@@ -102,18 +102,15 @@ class _PermissionWrapperState extends State<PermissionWrapper> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 24),
-            Text(
-              'Verificando permisos...',
-              style: Theme.of(context).textTheme.titleMedium,
+            CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 32),
             Text(
-              'Configurando acceso al almacenamiento',
+              'Verificando permisos',
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -123,95 +120,138 @@ class _PermissionWrapperState extends State<PermissionWrapper> {
 
   Widget _buildPermissionDeniedScreen() {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.security, size: 80, color: Colors.orange[400]),
-              const SizedBox(height: 24),
+              const Spacer(),
+              // Icono principal
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(40),
+                ),
+                child: Icon(
+                  Icons.folder_outlined,
+                  size: 40,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Título
               Text(
-                'Permisos de almacenamiento',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+                'Acceso al almacenamiento',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
+
+              // Descripción
               Text(
                 _errorMessage.isNotEmpty
                     ? _errorMessage
-                    : 'Para mostrar las fusiones de Pokémon, necesitamos acceso a los archivos del juego en tu dispositivo.',
-                style: Theme.of(context).textTheme.bodyLarge,
+                    : 'Necesitamos acceso a tus archivos para cargar las fusiones del juego.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _retryPermissions,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Intentar de nuevo'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    await PermissionService.showPermissionDeniedDialog(context);
-                  },
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Abrir configuración'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700]),
-                    const SizedBox(height: 8),
-                    Text(
-                      'La aplicación funcionará con limitaciones sin estos permisos. Solo se mostrarán placeholders en lugar de las fusiones reales.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.blue[700]),
-                      textAlign: TextAlign.center,
+
+              const Spacer(),
+
+              // Botones principales
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _retryPermissions,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Conceder permiso'),
                     ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _hasPermissions = true;
-                        });
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        await PermissionService.showPermissionDeniedDialog(
+                          context,
+                        );
                       },
-                      child: const Text('Continuar sin permisos'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Abrir configuración'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+
+              const SizedBox(height: 24),
+
+              // Opciones adicionales
+              Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Solo se mostrarán placeholders sin permisos',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _hasPermissions = true;
+                            });
+                          },
+                          child: const Text('Continuar sin permisos'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () async {
+                      await PermissionService.showTroubleshootingDialog(
+                        context,
+                      );
+                    },
+                    child: const Text('Ayuda'),
+                  ),
+                ],
+              ),
+
               const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () async {
-                  await PermissionService.showTroubleshootingDialog(context);
-                },
-                icon: const Icon(Icons.help_outline),
-                label: const Text('¿Problemas con placeholders?'),
-                style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
-              ),
             ],
           ),
         ),

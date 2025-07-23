@@ -4,8 +4,6 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 
 class PermissionService {
-  static const String _tag = 'PermissionService';
-
   /// Solicita todos los permisos necesarios para la app
   static Future<bool> requestStoragePermissions() async {
     try {
@@ -16,7 +14,6 @@ class PermissionService {
       }
       return true; // Para otras plataformas (Windows, macOS, Linux)
     } catch (e) {
-      debugPrint('$_tag: Error requesting permissions: $e');
       return false;
     }
   }
@@ -31,7 +28,6 @@ class PermissionService {
       }
       return true; // Para otras plataformas
     } catch (e) {
-      debugPrint('$_tag: Error checking permissions: $e');
       return false;
     }
   }
@@ -42,8 +38,6 @@ class PermissionService {
     final androidInfo = await deviceInfo.androidInfo;
     final sdkInt = androidInfo.version.sdkInt;
 
-    debugPrint('$_tag: Android SDK: $sdkInt');
-
     // Para Android 11+ (API 30+) - Usar MANAGE_EXTERNAL_STORAGE
     if (sdkInt >= 30) {
       final manageStorageStatus = await Permission.manageExternalStorage.status;
@@ -51,7 +45,6 @@ class PermissionService {
       if (manageStorageStatus != PermissionStatus.granted) {
         final newStatus = await Permission.manageExternalStorage.request();
         if (newStatus != PermissionStatus.granted) {
-          debugPrint('$_tag: MANAGE_EXTERNAL_STORAGE permission denied');
           return false;
         }
       }
@@ -60,12 +53,10 @@ class PermissionService {
     else {
       final storageStatus = await Permission.storage.request();
       if (storageStatus != PermissionStatus.granted) {
-        debugPrint('$_tag: Storage permission denied');
         return false;
       }
     }
 
-    debugPrint('$_tag: All Android permissions granted');
     return true;
   }
 
@@ -103,23 +94,35 @@ class PermissionService {
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text('Permisos de almacenamiento'),
-              content: const Text(
-                'Esta aplicación necesita acceso completo al almacenamiento para leer los archivos de sprites del juego Pokemon Infinite Fusion.\n\n'
-                'Específicamente necesitamos el permiso "Administrar todo el almacenamiento" para acceder a las carpetas del juego.\n\n'
-                'Sin estos permisos, solo se mostrarán placeholders en lugar de las fusiones reales.\n\n'
-                'Los archivos se buscan típicamente en rutas como:\n'
-                '• /storage/emulated/0/Pokemon Infinite Fusion/\n'
-                '• /sdcard/Pokemon Infinite Fusion/',
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Acceso al almacenamiento',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              content: Text(
+                'Para mostrar las fusiones reales necesitamos acceso a los archivos del juego.\n\n'
+                'Sin este permiso solo verás placeholders.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(height: 1.4),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancelar'),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
                 ),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Conceder permisos'),
+                  child: const Text('Permitir'),
                 ),
               ],
             );
@@ -135,27 +138,34 @@ class PermissionService {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Permisos requeridos'),
-          content: const Text(
-            'Los permisos de almacenamiento son necesarios para que la aplicación funcione correctamente.\n\n'
-            'Por favor, ve a:\n'
-            'Configuración > Aplicaciones > Fusion Box > Permisos\n\n'
-            'Y habilita:\n'
-            '• Almacenamiento\n'
-            '• Administrar todo el almacenamiento (Android 11+)\n\n'
-            'Después regresa a la app y toca "Intentar de nuevo".',
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Permiso requerido',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          content: Text(
+            'Necesitas habilitar el acceso al almacenamiento en configuración.\n\n'
+            'Ve a: Aplicaciones > Fusion Box > Permisos',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Entendido'),
+              child: Text(
+                'Entendido',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 openAppSettings();
               },
-              child: const Text('Abrir configuración'),
+              child: const Text('Configuración'),
             ),
           ],
         );
@@ -169,30 +179,91 @@ class PermissionService {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('¿Sigues viendo placeholders?'),
-          content: const SingleChildScrollView(
-            child: Text(
-              'Si sigues viendo placeholders después de conceder permisos:\n\n'
-              '1. Verifica que el juego esté instalado correctamente\n'
-              '2. Ve a Configuración y selecciona la carpeta del juego\n'
-              '3. Asegúrate de que la ruta contenga:\n'
-              '   • Graphics/CustomBattlers/spritesheets/\n'
-              '   • Graphics/Battlers/spritesheets_autogen/\n\n'
-              '4. Reinicia la aplicación después de cambios\n\n'
-              'Rutas típicas del juego:\n'
-              '• /storage/emulated/0/Pokemon Infinite Fusion/\n'
-              '• /sdcard/Pokemon Infinite Fusion/\n'
-              '• /Android/data/com.game.pokemoninfinitefusion/',
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Solución de problemas',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Si sigues viendo placeholders:',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                _buildTroubleshootStep(
+                  context,
+                  '1',
+                  'Verifica que el juego esté instalado',
+                ),
+                _buildTroubleshootStep(
+                  context,
+                  '2',
+                  'Configura la ruta del juego en ajustes',
+                ),
+                _buildTroubleshootStep(context, '3', 'Reinicia la aplicación'),
+              ],
             ),
           ),
           actions: [
-            ElevatedButton(
+            FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Entendido'),
+              child: const Text('Cerrar'),
             ),
           ],
         );
       },
+    );
+  }
+
+  static Widget _buildTroubleshootStep(
+    BuildContext context,
+    String number,
+    String text,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                number,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2.0),
+              child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
