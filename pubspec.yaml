@@ -1,5 +1,6 @@
 name: fusion_box
-description: "A new Flutter project."
+description: "A cross-platform mobile application built with Flutter that facilitates the visualization and exploration of Pokémon fusions for the Pokemon Infinite Fusion game. 
+Allows users to select multiple Pokémon and generate an interactive matrix displaying all possible fusion combinations with their corresponding sprites extracted directly from the game files."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
