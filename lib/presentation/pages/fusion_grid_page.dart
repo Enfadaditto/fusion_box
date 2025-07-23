@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
-import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
 
@@ -16,16 +15,6 @@ class FusionGridPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Fusion Grid'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: () {
-              context.read<FusionGridBloc>().add(ClearFusionGrid());
-              Navigator.of(context).pop();
-            },
-            tooltip: 'Clear Grid',
-          ),
-        ],
       ),
       body: BlocBuilder<FusionGridBloc, FusionGridState>(
         builder: (context, state) {
