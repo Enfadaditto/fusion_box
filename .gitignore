@@ -45,6 +45,6 @@ app.*.map.json
 /android/app/release
 
 # MyStuff
-./V1.1.0
-./TODO
-./project_context.txt
+V1.1.0
+TODO
+project_context.txt
