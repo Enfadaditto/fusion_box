@@ -1,6 +1,6 @@
 class AppConfig {
   static const String appName = 'Pokemon Fusion Box';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.1.0';
 
   // Game related configurations
   static const String defaultGamePathMessage =
@@ -18,4 +18,20 @@ class AppConfig {
   static const String spritesNotFoundError =
       'Sprites directory not found in game folder';
   static const String loadPokemonError = 'Failed to load Pokemon data';
+
+  // Sprite Download Configuration
+  static const String customSpritesBaseUrl =
+      'https://infinitefusion.net/customsprites/spritesheets/spritesheets_custom/';
+  static const String baseSpritesBaseUrl =
+      'https://infinitefusion.net/customsprites/spritesheets/spritesheets_base/';
+
+  // Rate limiting configuration (based on the original game)
+  static const int maxDownloadRequestsPerMinute = 15;
+  static const int rateLimitWindowSeconds = 60;
+  static const int downloadTimeoutSeconds = 30;
+
+  // Download settings keys for SharedPreferences
+  static const String downloadEnabledKey = 'sprite_download_enabled';
+  static const String rateLimitLogKey = 'rate_limit_log';
+  static const String downloadedSpritesLogKey = 'downloaded_sprites_log';
 }

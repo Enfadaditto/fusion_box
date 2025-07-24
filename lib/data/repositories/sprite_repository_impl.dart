@@ -41,6 +41,25 @@ class SpriteRepositoryImpl implements SpriteRepository {
   }
 
   @override
+  Future<List<SpriteData>> getAllSpriteVariants(int headId, int bodyId) async {
+    final sprites = <SpriteData>[];
+    final variants = await getAvailableVariants(headId, bodyId);
+
+    for (String variant in variants) {
+      SpriteData? sprite = await getSpecificSprite(
+        headId,
+        bodyId,
+        variant: variant,
+      );
+      if (sprite != null) {
+        sprites.add(sprite);
+      }
+    }
+
+    return sprites;
+  }
+
+  @override
   Future<SpriteData?> getAutogenSprite(int headId, int bodyId) async {
     return await fusionCalculator.getAutogenSprite(headId, bodyId);
   }

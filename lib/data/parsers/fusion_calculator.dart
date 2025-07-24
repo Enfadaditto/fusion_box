@@ -4,14 +4,17 @@ import 'package:fusion_box/core/errors/exceptions.dart';
 import 'package:fusion_box/data/parsers/sprite_parser.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/data/datasources/local/game_local_datasource.dart';
+import 'package:fusion_box/core/services/sprite_download_service.dart';
 
 class FusionCalculator {
   final SpriteParser spriteParser;
   final GameLocalDataSource gameLocalDataSource;
+  final SpriteDownloadService spriteDownloadService;
 
   FusionCalculator({
     required this.spriteParser,
     required this.gameLocalDataSource,
+    required this.spriteDownloadService,
   });
 
   Future<List<SpriteData>> getFusion(int headId, int bodyId) async {
@@ -24,6 +27,9 @@ class FusionCalculator {
 
       for (final variant in variants) {
         final spriteSheetPath = _buildFullSpritePath(basePath, variant);
+
+        // Intentar descargar el spritesheet si no existe
+        await _tryDownloadSpritesheet(headId, spriteSheetPath, variant);
 
         try {
           final variantSprites = await spriteParser.parseSpritesheetToSprites(
@@ -70,7 +76,13 @@ class FusionCalculator {
 
   Future<List<String>> _getAvailableVariants(String basePath) async {
     final variants = <String>[];
+    final headId = int.tryParse(basePath.split('/').last) ?? 0;
     final mainFile = File('$basePath.png');
+
+    // Intentar descargar el sprite principal si no existe
+    if (!await mainFile.exists()) {
+      await _tryDownloadSpritesheet(headId, '$basePath.png', '');
+    }
 
     if (await mainFile.exists()) {
       variants.add('');
@@ -121,6 +133,9 @@ class FusionCalculator {
       final gameBasePath = await _getGameBasePath();
       final basePath = _buildSpritePath(gameBasePath, headId);
       final spritesheetPath = _buildFullSpritePath(basePath, variant);
+
+      // Intentar descargar el spritesheet si no existe
+      await _tryDownloadSpritesheet(headId, spritesheetPath, variant);
 
       // El primer espacio del grid está vacío, usar directamente bodyId
       final targetIndex = bodyId;
@@ -214,6 +229,38 @@ class FusionCalculator {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Intenta descargar un spritesheet si no existe localmente
+  Future<void> _tryDownloadSpritesheet(
+    int headId,
+    String spritesheetPath,
+    String variant,
+  ) async {
+    try {
+      // Solo intentar descargar si el archivo no existe
+      final file = File(spritesheetPath);
+      if (!await file.exists()) {
+        if (variant.isEmpty) {
+          // Para el sprite principal, descargar todas las variantes disponibles
+          await spriteDownloadService.downloadAllVariants(
+            headId: headId,
+            baseLocalPath: spritesheetPath,
+            type: SpriteType.custom,
+          );
+        } else {
+          // Para variantes específicas, descargar solo esa variante
+          await spriteDownloadService.downloadSpriteIfNeeded(
+            headId: headId,
+            localSpritePath: spritesheetPath,
+            variant: variant,
+            type: SpriteType.custom,
+          );
+        }
+      }
+    } catch (e) {
+      // Fallar silenciosamente en la descarga - no afecta el funcionamiento principal
     }
   }
 }

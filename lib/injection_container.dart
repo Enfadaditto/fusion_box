@@ -21,6 +21,9 @@ import 'package:fusion_box/domain/usecases/generate_fusion_grid.dart';
 import 'package:fusion_box/data/parsers/sprite_parser.dart';
 import 'package:fusion_box/data/parsers/fusion_calculator.dart';
 
+// Services
+import 'package:fusion_box/core/services/sprite_download_service.dart';
+
 // Presentation
 import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
@@ -42,11 +45,18 @@ Future<void> init() async {
     () => PokemonLocalDataSourceImpl(),
   );
 
+  // Services
+  sl.registerLazySingleton(() => SpriteDownloadService(preferences: sl()));
+
   // Parsers
   sl.registerLazySingleton(() => SpriteParser());
 
   sl.registerLazySingleton(
-    () => FusionCalculator(spriteParser: sl(), gameLocalDataSource: sl()),
+    () => FusionCalculator(
+      spriteParser: sl(),
+      gameLocalDataSource: sl(),
+      spriteDownloadService: sl(),
+    ),
   );
 
   // Repositories

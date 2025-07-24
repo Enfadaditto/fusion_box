@@ -14,6 +14,10 @@ abstract class SpriteRepository {
     int bodyPokemonId, {
     String variant = '',
   });
+  Future<List<SpriteData>> getAllSpriteVariants(
+    int headPokemonId,
+    int bodyPokemonId,
+  );
 
   /// Obtiene un sprite autogenerado como fallback
   Future<SpriteData?> getAutogenSprite(int headPokemonId, int bodyPokemonId);
