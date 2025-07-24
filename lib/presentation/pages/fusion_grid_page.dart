@@ -6,8 +6,50 @@ import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart'
 import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
 
-class FusionGridPage extends StatelessWidget {
+class FusionGridPage extends StatefulWidget {
   const FusionGridPage({super.key});
+
+  @override
+  State<FusionGridPage> createState() => _FusionGridPageState();
+}
+
+class _FusionGridPageState extends State<FusionGridPage> {
+  final TransformationController _transformationController =
+      TransformationController();
+  double _currentScale = 1.0;
+  static const double _minScale = 0.5;
+  static const double _maxScale = 3.0;
+  static const double _scaleStep = 0.25;
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  void _zoomIn() {
+    final newScale = (_currentScale + _scaleStep).clamp(_minScale, _maxScale);
+    _setScale(newScale);
+  }
+
+  void _zoomOut() {
+    final newScale = (_currentScale - _scaleStep).clamp(_minScale, _maxScale);
+    _setScale(newScale);
+  }
+
+  void _resetZoom() {
+    _setScale(1.0);
+  }
+
+  void _setScale(double scale) {
+    setState(() {
+      _currentScale = scale;
+    });
+
+    // Aplicar la transformación al centro de la vista
+    final matrix = Matrix4.identity()..scale(scale);
+    _transformationController.value = matrix;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +57,26 @@ class FusionGridPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Fusion Grid'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        actions: [
+          // Indicador de zoom actual
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${(_currentScale * 100).round()}%',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: BlocBuilder<FusionGridBloc, FusionGridState>(
         builder: (context, state) {
@@ -68,11 +130,56 @@ class FusionGridPage extends StatelessWidget {
           return const Center(child: Text('No fusion grid available'));
         },
       ),
+      // Botones flotantes de zoom
+      floatingActionButton: _buildZoomControls(),
+    );
+  }
+
+  Widget _buildZoomControls() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Zoom In
+        FloatingActionButton.small(
+          heroTag: "zoom_in",
+          onPressed: _currentScale < _maxScale ? _zoomIn : null,
+          backgroundColor:
+              _currentScale < _maxScale
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
+          child: const Icon(Icons.zoom_in),
+        ),
+        const SizedBox(height: 8),
+
+        // Reset Zoom
+        FloatingActionButton.small(
+          heroTag: "zoom_reset",
+          onPressed: _currentScale != 1.0 ? _resetZoom : null,
+          backgroundColor:
+              _currentScale != 1.0
+                  ? Theme.of(context).colorScheme.secondary
+                  : Colors.grey,
+          child: const Icon(Icons.center_focus_strong),
+        ),
+        const SizedBox(height: 8),
+
+        // Zoom Out
+        FloatingActionButton.small(
+          heroTag: "zoom_out",
+          onPressed: _currentScale > _minScale ? _zoomOut : null,
+          backgroundColor:
+              _currentScale > _minScale
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey,
+          child: const Icon(Icons.zoom_out),
+        ),
+      ],
     );
   }
 
   Widget _buildFusionGrid(BuildContext context, FusionGridLoaded state) {
     final gridSize = state.selectedPokemon.length;
+    final gridData = _buildGridData(state);
 
     return Column(
       children: [
@@ -95,118 +202,140 @@ class FusionGridPage extends StatelessWidget {
                 '${state.selectedPokemon.length} Pokemon selected',
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Use pinch to zoom or buttons below',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
 
-        // Grid scrollable simple
+        // Grid con zoom mejorado
         Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                child: Table(
-                  border: TableBorder.all(color: Colors.grey[300]!, width: 1),
-                  defaultColumnWidth: const FixedColumnWidth(100),
-                  children: [
-                    // Header row con nombres de Pokemon
-                    TableRow(
-                      decoration: BoxDecoration(color: Colors.grey[800]),
-                      children: [
-                        // Celda vacía para la esquina
-                        Container(
-                          height: 80,
-                          padding: const EdgeInsets.all(4),
-                          child: const Center(
-                            child: Text(
-                              'Head \\ Body',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        // Headers de Pokemon (body)
-                        ...state.selectedPokemon.map<Widget>(
-                          (pokemon) => Container(
-                            height: 80,
-                            padding: const EdgeInsets.all(4),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CachedPokemonIcon(pokemon: pokemon, size: 32),
-                                const SizedBox(height: 2),
-                                Text(
-                                  pokemon.name,
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.white,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Filas de datos
-                    ...List.generate(gridSize, (rowIndex) {
-                      final headPokemon = state.selectedPokemon[rowIndex];
-
-                      return TableRow(
-                        children: [
-                          // Header de fila (head Pokemon)
-                          Container(
-                            height: 100,
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(color: Colors.grey[800]),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CachedPokemonIcon(
-                                  pokemon: headPokemon,
-                                  size: 32,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  headPokemon.name,
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    color: Colors.white,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Celdas de fusión
-                          ...List.generate(gridSize, (colIndex) {
-                            final fusion = state.fusionGrid[rowIndex][colIndex];
-
-                            return _buildFusionCell(
-                              context,
-                              fusion,
-                              rowIndex == colIndex,
-                            );
-                          }),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            ),
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            boundaryMargin: const EdgeInsets.all(80),
+            minScale: _minScale,
+            maxScale: _maxScale,
+            constrained: false,
+            onInteractionEnd: (details) {
+              setState(() {
+                _currentScale =
+                    _transformationController.value.getMaxScaleOnAxis();
+              });
+            },
+            child: gridData,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildGridData(FusionGridLoaded state) {
+    final gridSize = state.selectedPokemon.length;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: Table(
+        border: TableBorder.all(color: Colors.grey[300]!, width: 1),
+        defaultColumnWidth: const FixedColumnWidth(100),
+        children: [
+          // Header row con nombres de Pokemon
+          TableRow(
+            decoration: BoxDecoration(color: Colors.grey[800]),
+            children: [
+              // Celda vacía para la esquina
+              Container(
+                height: 80,
+                padding: const EdgeInsets.all(4),
+                child: const Center(
+                  child: Text(
+                    'Head \\ Body',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              // Headers de Pokemon (body)
+              ...state.selectedPokemon.map<Widget>(
+                (pokemon) => Container(
+                  height: 80,
+                  padding: const EdgeInsets.all(4),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CachedPokemonIcon(pokemon: pokemon, size: 32),
+                      const SizedBox(height: 2),
+                      Text(
+                        pokemon.name,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Filas de datos
+          ...List.generate(gridSize, (rowIndex) {
+            final headPokemon = state.selectedPokemon[rowIndex];
+
+            return TableRow(
+              children: [
+                // Header de fila (head Pokemon)
+                Container(
+                  height: 100,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.grey[800]),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CachedPokemonIcon(pokemon: headPokemon, size: 32),
+                      const SizedBox(height: 2),
+                      Text(
+                        headPokemon.name,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Celdas de fusión
+                ...List.generate(gridSize, (colIndex) {
+                  final fusion = state.fusionGrid[rowIndex][colIndex];
+
+                  return _buildFusionCell(
+                    context,
+                    fusion,
+                    rowIndex == colIndex,
+                  );
+                }),
+              ],
+            );
+          }),
+        ],
+      ),
     );
   }
 

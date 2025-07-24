@@ -220,7 +220,7 @@ class SettingsPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         _buildInfoRow('App Name', 'Pokemon Fusion Box'),
-                        _buildInfoRow('Version', '1.0.0'),
+                        _buildInfoRow('Version', '1.1.0'),
                         _buildInfoRow('Developer', 'Enfadaditto'),
                         const SizedBox(height: 12),
                         const Text(
