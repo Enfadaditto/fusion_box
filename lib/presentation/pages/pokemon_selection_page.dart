@@ -201,15 +201,18 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                             decoration: InputDecoration(
                               hintText: 'Search Pokemon...',
                               prefixIcon: Icon(Icons.search),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  context.read<PokemonListBloc>().add(
-                                    SearchPokemon(''),
-                                  );
-                                },
-                              ),
+                              suffixIcon:
+                                  _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                        icon: const Icon(Icons.clear),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          context.read<PokemonListBloc>().add(
+                                            SearchPokemon(''),
+                                          );
+                                        },
+                                      )
+                                      : null,
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16,
