@@ -26,6 +26,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _opacityAnimation;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -196,9 +197,19 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                             ],
                           ),
                           child: TextField(
-                            decoration: const InputDecoration(
+                            controller: _searchController,
+                            decoration: InputDecoration(
                               hintText: 'Search Pokemon...',
                               prefixIcon: Icon(Icons.search),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  context.read<PokemonListBloc>().add(
+                                    SearchPokemon(''),
+                                  );
+                                },
+                              ),
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16,
