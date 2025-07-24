@@ -9,6 +9,7 @@ import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
 import 'package:fusion_box/presentation/pages/settings_page.dart';
 import 'package:fusion_box/presentation/pages/fusion_grid_loading_page.dart';
+import 'package:fusion_box/presentation/widgets/common/debug_icon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
@@ -130,6 +131,8 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
             title: const Text('Pokemon Fusion Box'),
             backgroundColor: Theme.of(context).colorScheme.primaryContainer,
             actions: [
+              //TODO: REMOVE FOR RELEASE
+              const DebugIcon(),
               IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: () {
