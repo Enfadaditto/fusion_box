@@ -2,11 +2,21 @@ import 'package:fusion_box/core/errors/exceptions.dart';
 import 'package:fusion_box/data/parsers/fusion_calculator.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
+import 'package:image/image.dart' as img;
 
 class SpriteRepositoryImpl implements SpriteRepository {
   final FusionCalculator fusionCalculator;
 
   SpriteRepositoryImpl({required this.fusionCalculator});
+
+  @override
+  Future<String?> getSpritesheetPath(int headId) async {
+    try {
+      return fusionCalculator.getFullSpritesheetPath(headId);
+    } catch (e) {
+      return null;
+    }
+  }
 
   @override
   Future<List<SpriteData>> getFusionSprites(int headId, int bodyId) async {
@@ -34,6 +44,23 @@ class SpriteRepositoryImpl implements SpriteRepository {
     String variant = '',
   }) async {
     return await fusionCalculator.getSpecificFusionSprite(
+      headId,
+      bodyId,
+      variant: variant,
+    );
+  }
+
+  @override
+  Future<SpriteData?> getSpecificSpriteFromSpritesheet(
+    String spritesheetPath,
+    img.Image spritesheet,
+    int headId,
+    int bodyId, {
+    String variant = '',
+  }) async {
+    return await fusionCalculator.getSpecificFusionSpriteFromSpritesheet(
+      spritesheetPath,
+      spritesheet,
       headId,
       bodyId,
       variant: variant,

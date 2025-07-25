@@ -5,6 +5,7 @@ import 'package:fusion_box/data/parsers/sprite_parser.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/data/datasources/local/game_local_datasource.dart';
 import 'package:fusion_box/core/services/sprite_download_service.dart';
+import 'package:image/image.dart' as img;
 
 class FusionCalculator {
   final SpriteParser spriteParser;
@@ -54,6 +55,12 @@ class FusionCalculator {
         'Failed to calculate fusion: $headId-$bodyId: $e',
       );
     }
+  }
+
+  Future<String> getFullSpritesheetPath(int headId) async {
+    final gameBasePath = await _getGameBasePath();
+    final basePath = _buildSpritePath(gameBasePath, headId);
+    return _buildFullSpritePath(basePath, '');
   }
 
   Future<String> _getGameBasePath() async {
@@ -111,23 +118,18 @@ class FusionCalculator {
     List<SpriteData> sprites,
     int bodyId,
   ) {
-    // El primer espacio del grid está vacío, así que el pokémon 1 está en la posición 1, etc.
-    final targetIndex =
-        bodyId; // Usar directamente bodyId ya que la posición 0 está vacía
-
-    if (targetIndex < 0 || targetIndex >= sprites.length) {
+    if (bodyId < 0 || bodyId >= sprites.length) {
       return [];
     }
 
-    return [sprites[targetIndex]];
+    return [sprites[bodyId]];
   }
 
   /// Obtiene un sprite específico para una fusión
   Future<SpriteData?> getSpecificFusionSprite(
     int headId,
     int bodyId, {
-    String variant = '',
-    int spriteIndex = 0,
+    String variant = ''
   }) async {
     try {
       final gameBasePath = await _getGameBasePath();
@@ -137,12 +139,30 @@ class FusionCalculator {
       // Intentar descargar el spritesheet si no existe
       await _tryDownloadSpritesheet(headId, spritesheetPath, variant);
 
-      // El primer espacio del grid está vacío, usar directamente bodyId
-      final targetIndex = bodyId;
-
       final sprite = await spriteParser.extractSpriteByIndex(
         spritesheetPath,
-        targetIndex,
+        bodyId,
+        variant,
+      );
+
+      return sprite;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<SpriteData?> getSpecificFusionSpriteFromSpritesheet(
+      String spritesheetPath,
+      img.Image spritesheet,
+      int headId,
+      int bodyId, {
+      String variant = ''
+  }) async {
+    try {
+      final sprite = await spriteParser.extractSpriteByIndexFromSpritesheet(
+        spritesheetPath,
+        spritesheet,
+        bodyId,
         variant,
       );
 

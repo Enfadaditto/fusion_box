@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/domain/usecases/get_fusion.dart';
+import 'package:image/image.dart' as img;
 
 // Función top-level para ejecutar en isolate
 Future<List<List<Fusion?>>> generateFusionGridInIsolate(
@@ -86,34 +89,60 @@ class GenerateFusionGrid {
 
     for (int i = 0; i < basicGrid.length; i++) {
       final row = <Fusion?>[];
-      for (int j = 0; j < basicGrid[i].length; j++) {
-        final fusion = basicGrid[i][j];
-        if (fusion != null) {
-          // Cargar sprite específico
-          final sprite = await getFusion.spriteRepository.getSpecificSprite(
-            fusion.headPokemon.pokedexNumber,
-            fusion.bodyPokemon.pokedexNumber,
-          );
 
-          // Si no hay sprite personalizado, intentar autogenerado
-          final finalSprite =
-              sprite ??
-              await getFusion.spriteRepository.getAutogenSprite(
-                fusion.headPokemon.pokedexNumber,
-                fusion.bodyPokemon.pokedexNumber,
+      final headPokemon = basicGrid[i][i];
+      if (headPokemon != null) {
+        final spritesheetPath = await getFusion.spriteRepository
+            .getSpritesheetPath(headPokemon.headPokemon.pokedexNumber);
+
+        if (spritesheetPath != null) {
+          final spriteSheet = File(spritesheetPath);
+
+          img.Image? image;
+          if (await spriteSheet.exists()) {
+            final bytes = await spriteSheet.readAsBytes();
+            image = img.decodeImage(bytes);
+          }
+
+          for (int j = 0; j < basicGrid[i].length; j++) {
+            final fusion = basicGrid[i][j];
+
+            if (fusion != null) {
+              final sprite =
+                  image != null
+                      ? await getFusion.spriteRepository
+                          .getSpecificSpriteFromSpritesheet(
+                            spritesheetPath,
+                            image,
+                            fusion.headPokemon.pokedexNumber,
+                            fusion.bodyPokemon.pokedexNumber,
+                          )
+                      : await getFusion.spriteRepository.getSpecificSprite(
+                        fusion.headPokemon.pokedexNumber,
+                        fusion.bodyPokemon.pokedexNumber,
+                      );
+
+              // Si no hay sprite personalizado, intentar autogenerado
+              final finalSprite =
+                  sprite ??
+                  await getFusion.spriteRepository.getAutogenSprite(
+                    fusion.headPokemon.pokedexNumber,
+                    fusion.bodyPokemon.pokedexNumber,
+                  );
+
+              final fusionWithSprite = Fusion(
+                headPokemon: fusion.headPokemon,
+                bodyPokemon: fusion.bodyPokemon,
+                availableSprites: fusion.availableSprites,
+                types: fusion.types,
+                primarySprite: finalSprite,
               );
 
-          final fusionWithSprite = Fusion(
-            headPokemon: fusion.headPokemon,
-            bodyPokemon: fusion.bodyPokemon,
-            availableSprites: fusion.availableSprites,
-            types: fusion.types,
-            primarySprite: finalSprite,
-          );
-
-          row.add(fusionWithSprite);
-        } else {
-          row.add(null);
+              row.add(fusionWithSprite);
+            } else {
+              row.add(null);
+            }
+          }
         }
       }
       gridWithSprites.add(row);

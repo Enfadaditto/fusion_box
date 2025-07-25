@@ -197,11 +197,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${state.selectedPokemon.length} Pokemon selected',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
+
               const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

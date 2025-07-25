@@ -1,6 +1,9 @@
 import 'package:fusion_box/domain/entities/sprite_data.dart';
+import 'package:image/image.dart' as img;
+
 
 abstract class SpriteRepository {
+  Future<String?> getSpritesheetPath(int headPokemonId);
   Future<List<SpriteData>> getFusionSprites(
     int headPokemonId,
     int bodyPokemonId,
@@ -10,6 +13,13 @@ abstract class SpriteRepository {
     int bodyPokemonId,
   );
   Future<SpriteData?> getSpecificSprite(
+    int headPokemonId,
+    int bodyPokemonId, {
+    String variant = '',
+  });
+  Future<SpriteData?> getSpecificSpriteFromSpritesheet(
+    String spritesheetPath,
+    img.Image spritesheet,
     int headPokemonId,
     int bodyPokemonId, {
     String variant = '',
