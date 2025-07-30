@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_bloc.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_event.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_state.dart';
+import 'package:fusion_box/presentation/pages/pokemon_selection_page.dart';
 
 class GameSetupPage extends StatelessWidget {
   const GameSetupPage({super.key});
@@ -53,7 +54,7 @@ class GameSetupPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             const Text(
-                              'Game Directory Setup',
+                              'Game Directory Setup (Optional)',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -63,7 +64,7 @@ class GameSetupPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          'To create fusion sprites, please select your Pokemon Infinite Fusion game directory.',
+                          'Setting up your Pokemon Infinite Fusion game directory is optional but highly recommended for the best experience.',
                           style: TextStyle(fontSize: 16),
                         ),
                         const SizedBox(height: 8),
@@ -126,11 +127,19 @@ class GameSetupPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 16),
                                   _buildSelectButton(context),
+                                  const SizedBox(height: 12),
+                                  _buildSkipButton(context),
                                 ],
                               );
                             }
 
-                            return _buildSelectButton(context);
+                            return Column(
+                              children: [
+                                _buildSelectButton(context),
+                                const SizedBox(height: 12),
+                                _buildSkipButton(context),
+                              ],
+                            );
                           },
                         ),
                       ],
@@ -156,6 +165,27 @@ class GameSetupPage extends StatelessWidget {
         icon: const Icon(Icons.folder_open),
         label: const Text(
           'Select Game Directory',
+          style: TextStyle(fontSize: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkipButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const PokemonSelectionPage(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.skip_next),
+        label: const Text(
+          'Continue without setup',
           style: TextStyle(fontSize: 16),
         ),
       ),

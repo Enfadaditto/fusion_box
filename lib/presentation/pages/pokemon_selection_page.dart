@@ -5,12 +5,16 @@ import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_bloc.dart
 import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_event.dart';
 import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_state.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
+import 'package:fusion_box/presentation/bloc/game_setup/game_setup_bloc.dart';
+import 'package:fusion_box/presentation/bloc/game_setup/game_setup_state.dart';
+import 'package:fusion_box/presentation/bloc/game_setup/game_setup_event.dart';
 
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
 import 'package:fusion_box/presentation/pages/settings_page.dart';
 import 'package:fusion_box/presentation/pages/fusion_grid_loading_page.dart';
 import 'package:fusion_box/presentation/widgets/common/debug_icon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
   const PokemonSelectionPage({super.key});
@@ -62,10 +66,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
   }
 
   void _onScroll() {
-    // Usar la nueva lógica que considera tanto scroll como cantidad de Pokemon
-    // Necesitamos acceder al contexto para obtener el estado actual,
-    // pero por simplicidad, mantenemos la lógica original aquí
-    // La verificación adicional se hará en el build method
     final showBackToTop = _scrollController.offset > 200;
     if (showBackToTop != _showBackToTop) {
       setState(() {
@@ -81,8 +81,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
   }
 
   void _checkBackToTopVisibility(int filteredPokemonCount) {
-    // Ocultar el toast si la lista es muy corta (menos de 5 Pokemon)
-    // o si el scroll actual es menor a 200px
     final shouldShow =
         _scrollController.offset > 200 && filteredPokemonCount > 4;
 
@@ -115,6 +113,9 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
           create: (context) => sl<PokemonListBloc>()..add(LoadPokemonList()),
         ),
         BlocProvider(create: (context) => sl<FusionGridBloc>()),
+        BlocProvider(
+          create: (context) => sl<GameSetupBloc>()..add(CheckGamePath()),
+        ),
       ],
       child: BlocListener<FusionGridBloc, FusionGridState>(
         listener: (context, state) {
@@ -185,7 +186,12 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                     Column(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.only(
+                            top: 16,
+                            left: 16,
+                            right: 16,
+                            bottom: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Theme.of(context).scaffoldBackgroundColor,
                             boxShadow: [
@@ -231,10 +237,47 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                           child: CustomScrollView(
                             controller: _scrollController,
                             slivers: [
-                              // Selected Pokemon box como sliver
+                              // Game Setup Info Banner
+                              SliverToBoxAdapter(
+                                child: BlocBuilder<
+                                  GameSetupBloc,
+                                  GameSetupState
+                                >(
+                                  builder: (context, gameState) {
+                                    if (!(gameState is GamePathNotSet ||
+                                        gameState is GamePathCleared)) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return FutureBuilder<bool>(
+                                      future: SharedPreferences.getInstance()
+                                          .then(
+                                            (prefs) =>
+                                                prefs.getBool(
+                                                  'game_setup_info_banner_seen',
+                                                ) !=
+                                                true,
+                                          ),
+                                      builder: (context, snapshot) {
+                                        final shouldShow =
+                                            snapshot.data ?? false;
+                                        if (!shouldShow) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return _GameSetupInfoBanner(
+                                          shouldShow: true,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+
+                              // Selected Pokemon box
                               SliverToBoxAdapter(
                                 child: Container(
-                                  margin: const EdgeInsets.all(16),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
                                     border: Border.all(
@@ -454,7 +497,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                 ),
                               ),
 
-                              // Header para la lista de Pokemon
+                              // Pokemon list header
                               SliverToBoxAdapter(
                                 child: Container(
                                   padding: const EdgeInsets.fromLTRB(
@@ -519,7 +562,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                 ),
                               ),
 
-                              // Lista de Pokemon como sliver
+                              // Pokemon list
                               SliverList(
                                 delegate: SliverChildBuilderDelegate((
                                   context,
@@ -647,6 +690,78 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
               return const Center(child: Text('Unknown state'));
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameSetupInfoBanner extends StatefulWidget {
+  final bool shouldShow;
+  const _GameSetupInfoBanner({required this.shouldShow});
+
+  @override
+  State<_GameSetupInfoBanner> createState() => _GameSetupInfoBannerState();
+}
+
+class _GameSetupInfoBannerState extends State<_GameSetupInfoBanner> {
+  bool _visible = true;
+  bool _timerStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _visible = widget.shouldShow;
+    if (_visible && !_timerStarted) {
+      _timerStarted = true;
+      Future.delayed(const Duration(seconds: 5), _hideBanner);
+    }
+  }
+
+  void _hideBanner() async {
+    if (!_visible) return;
+    setState(() => _visible = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('game_setup_info_banner_seen', true);
+  }
+
+  @override
+  void dispose() {
+    if (_visible) {
+      _hideBanner();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const SettingsPage()));
+        _hideBanner();
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.blue.withAlpha(25),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blue.withAlpha(77)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Game folder setup is optional but recommended for better performance. Configure it in Settings.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ],
         ),
       ),
     );

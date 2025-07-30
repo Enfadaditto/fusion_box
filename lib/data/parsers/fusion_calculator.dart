@@ -6,6 +6,7 @@ import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/data/datasources/local/game_local_datasource.dart';
 import 'package:fusion_box/core/services/sprite_download_service.dart';
 import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 
 class FusionCalculator {
   final SpriteParser spriteParser;
@@ -65,10 +66,18 @@ class FusionCalculator {
 
   Future<String> _getGameBasePath() async {
     final path = await gameLocalDataSource.getGamePath();
-    if (path == null || path.isEmpty) {
-      throw GamePathNotSetException('Game path not configured');
+    if (path != null && path.isNotEmpty) {
+      return path;
     }
-    return path;
+
+    final Directory appDir = await getApplicationSupportDirectory();
+    final Directory spritesDir = Directory(
+      '${appDir.path}/spritesheets_custom',
+    );
+    if (!await spritesDir.exists()) {
+      await spritesDir.create(recursive: true);
+    }
+    return spritesDir.path;
   }
 
   String _buildSpritePath(String gameBasePath, int headId) {
@@ -129,7 +138,7 @@ class FusionCalculator {
   Future<SpriteData?> getSpecificFusionSprite(
     int headId,
     int bodyId, {
-    String variant = ''
+    String variant = '',
   }) async {
     try {
       final gameBasePath = await _getGameBasePath();
@@ -152,11 +161,11 @@ class FusionCalculator {
   }
 
   Future<SpriteData?> getSpecificFusionSpriteFromSpritesheet(
-      String spritesheetPath,
-      img.Image spritesheet,
-      int headId,
-      int bodyId, {
-      String variant = ''
+    String spritesheetPath,
+    img.Image spritesheet,
+    int headId,
+    int bodyId, {
+    String variant = '',
   }) async {
     try {
       final sprite = await spriteParser.extractSpriteByIndexFromSpritesheet(

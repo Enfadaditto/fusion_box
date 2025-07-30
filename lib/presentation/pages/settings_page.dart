@@ -69,13 +69,18 @@ class SettingsPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             const Text(
-                              'Game Directory',
+                              'Game Directory (Optional)',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Setting up your Pokemon Infinite Fusion game directory is optional but highly recommended for the best experience.',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         const SizedBox(height: 16),
                         BlocBuilder<GameSetupBloc, GameSetupState>(
@@ -147,13 +152,14 @@ class SettingsPage extends StatelessWidget {
                                         label: const Text('Change Path'),
                                       ),
                                       const SizedBox(width: 12),
-                                      OutlinedButton.icon(
+                                      ElevatedButton.icon(
                                         onPressed:
                                             () => _showClearDialog(context),
                                         icon: const Icon(Icons.delete_outline),
                                         label: const Text('Clear Path'),
-                                        style: OutlinedButton.styleFrom(
+                                        style: ElevatedButton.styleFrom(
                                           foregroundColor: Colors.red,
+                                          backgroundColor: Colors.grey[800],
                                         ),
                                       ),
                                     ],
@@ -222,11 +228,6 @@ class SettingsPage extends StatelessWidget {
                         _buildInfoRow('App Name', 'Pokemon Fusion Box'),
                         _buildInfoRow('Version', '1.1.0'),
                         _buildInfoRow('Developer', 'Enfadaditto'),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'A tool for exploring Pokemon fusions from Pokemon Infinite Fusion.',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
                       ],
                     ),
                   ),
