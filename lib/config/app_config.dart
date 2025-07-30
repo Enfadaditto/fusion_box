@@ -26,7 +26,7 @@ class AppConfig {
       'https://infinitefusion.net/customsprites/spritesheets/spritesheets_base/';
 
   // Rate limiting configuration (based on the original game)
-  static const int maxDownloadRequestsPerMinute = 15;
+  static const int maxDownloadRequestsPerMinute = 30;
   static const int rateLimitWindowSeconds = 60;
   static const int downloadTimeoutSeconds = 30;
 

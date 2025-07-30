@@ -13,7 +13,7 @@ class DebugIcon extends StatelessWidget {
               (context) => AlertDialog(
                 title: const Text('Debug'),
                 // Swap this content with the widget you want to debug
-                content: Text('Debug'),
+                content: Text('TODO: Generar el widget de selector de variables de una fusion'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
