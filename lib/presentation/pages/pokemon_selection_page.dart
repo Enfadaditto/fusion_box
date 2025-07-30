@@ -277,6 +277,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                 child: Container(
                                   margin: const EdgeInsets.symmetric(
                                     horizontal: 16,
+                                    vertical: 4,
                                   ),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
@@ -389,7 +390,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                       else
                                         Wrap(
                                           spacing: 8,
-                                          runSpacing: 8,
                                           children:
                                               state.selectedPokemon.map((
                                                 pokemon,

@@ -25,13 +25,10 @@ class AppConfig {
   static const String baseSpritesBaseUrl =
       'https://infinitefusion.net/customsprites/spritesheets/spritesheets_base/';
 
-  // Rate limiting configuration (based on the original game)
-  static const int maxDownloadRequestsPerMinute = 30;
-  static const int rateLimitWindowSeconds = 60;
+  // Download timeout configuration
   static const int downloadTimeoutSeconds = 30;
 
   // Download settings keys for SharedPreferences
   static const String downloadEnabledKey = 'sprite_download_enabled';
-  static const String rateLimitLogKey = 'rate_limit_log';
   static const String downloadedSpritesLogKey = 'downloaded_sprites_log';
 }

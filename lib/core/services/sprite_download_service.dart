@@ -41,20 +41,12 @@ class SpriteDownloadService {
       return true; // Already exists, no need to download
     }
 
-    // Check rate limiting
-    if (await _isRateLimitExceeded()) {
-      return false;
-    }
-
     try {
       // Build download URL
       final url = _buildDownloadUrl(headId, variant, type);
 
       // Download the sprite
       final success = await _downloadSprite(url, localSpritePath);
-
-      // Log the download attempt
-      await _logDownloadAttempt();
 
       // If successful, log the downloaded sprite
       if (success) {
@@ -118,11 +110,6 @@ class SpriteDownloadService {
     ];
 
     for (final variant in possibleVariants) {
-      // Check if we've hit rate limit
-      if (await _isRateLimitExceeded()) {
-        break;
-      }
-
       final variantPath = baseLocalPath.replaceAll('.png', '$variant.png');
       final file = File(variantPath);
 
@@ -139,8 +126,6 @@ class SpriteDownloadService {
           variantPath,
           checkStatus404: true,
         );
-
-        await _logDownloadAttempt();
 
         if (success) {
           downloadedVariants.add(variant);
@@ -217,45 +202,6 @@ class SpriteDownloadService {
     return contentType.startsWith('image/') && response.bodyBytes.isNotEmpty;
   }
 
-  /// Check if rate limit has been exceeded
-  Future<bool> _isRateLimitExceeded() async {
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final windowStart = now - AppConfig.rateLimitWindowSeconds;
-
-    // Get existing request timestamps
-    final rateLimitLog = _prefs.getStringList(AppConfig.rateLimitLogKey) ?? [];
-
-    // Filter to only include requests within the time window
-    final recentRequests =
-        rateLimitLog
-            .map((timestamp) => int.tryParse(timestamp) ?? 0)
-            .where((timestamp) => timestamp > windowStart)
-            .toList();
-
-    return recentRequests.length >= AppConfig.maxDownloadRequestsPerMinute;
-  }
-
-  /// Log a download attempt for rate limiting
-  Future<void> _logDownloadAttempt() async {
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final windowStart = now - AppConfig.rateLimitWindowSeconds;
-
-    // Get existing request timestamps
-    final rateLimitLog = _prefs.getStringList(AppConfig.rateLimitLogKey) ?? [];
-
-    // Filter to only include requests within the time window and add new request
-    final updatedLog =
-        rateLimitLog
-            .map((timestamp) => int.tryParse(timestamp) ?? 0)
-            .where((timestamp) => timestamp > windowStart)
-            .map((timestamp) => timestamp.toString())
-            .toList();
-
-    updatedLog.add(now.toString());
-
-    await _prefs.setStringList(AppConfig.rateLimitLogKey, updatedLog);
-  }
-
   /// Log a successfully downloaded sprite
   Future<void> _logDownloadedSprite(String spritePath) async {
     final downloadedSprites =
@@ -272,32 +218,5 @@ class SpriteDownloadService {
   /// Get list of downloaded sprites
   List<String> getDownloadedSprites() {
     return _prefs.getStringList(AppConfig.downloadedSpritesLogKey) ?? [];
-  }
-
-  /// Clear download logs (useful for debugging/reset)
-  Future<void> clearDownloadLogs() async {
-    await _prefs.remove(AppConfig.rateLimitLogKey);
-    await _prefs.remove(AppConfig.downloadedSpritesLogKey);
-  }
-
-  /// Get current rate limit status
-  Future<Map<String, dynamic>> getRateLimitStatus() async {
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final windowStart = now - AppConfig.rateLimitWindowSeconds;
-
-    final rateLimitLog = _prefs.getStringList(AppConfig.rateLimitLogKey) ?? [];
-    final recentRequests =
-        rateLimitLog
-            .map((timestamp) => int.tryParse(timestamp) ?? 0)
-            .where((timestamp) => timestamp > windowStart)
-            .length;
-
-    return {
-      'requestsInWindow': recentRequests,
-      'maxRequests': AppConfig.maxDownloadRequestsPerMinute,
-      'windowSeconds': AppConfig.rateLimitWindowSeconds,
-      'rateLimitExceeded':
-          recentRequests >= AppConfig.maxDownloadRequestsPerMinute,
-    };
   }
 }
