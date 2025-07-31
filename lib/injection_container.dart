@@ -28,6 +28,7 @@ import 'package:fusion_box/core/services/sprite_download_service.dart';
 import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_bloc.dart';
+import 'package:fusion_box/presentation/bloc/settings/settings_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -80,4 +81,5 @@ Future<void> init() async {
   sl.registerFactory(() => PokemonListBloc(getPokemonList: sl()));
   sl.registerFactory(() => FusionGridBloc(generateFusionGrid: sl()));
   sl.registerFactory(() => GameSetupBloc(setupGamePath: sl()));
+  sl.registerFactory(() => SettingsBloc());
 }
