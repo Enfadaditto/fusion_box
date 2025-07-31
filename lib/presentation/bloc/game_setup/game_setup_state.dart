@@ -61,3 +61,16 @@ class GameSetupError extends GameSetupState {
 }
 
 class GamePathCleared extends GameSetupState {}
+
+class StoragePermissionRequesting extends GameSetupState {}
+
+class StoragePermissionGranted extends GameSetupState {}
+
+class StoragePermissionDenied extends GameSetupState {
+  final String message;
+
+  const StoragePermissionDenied(this.message);
+
+  @override
+  List<Object> get props => [message];
+}

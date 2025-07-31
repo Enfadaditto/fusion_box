@@ -11,6 +11,8 @@ class CheckGamePath extends GameSetupEvent {}
 
 class SelectGamePath extends GameSetupEvent {}
 
+class RequestStoragePermissions extends GameSetupEvent {}
+
 class SetGamePath extends GameSetupEvent {
   final String path;
 

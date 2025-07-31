@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fusion_box/injection_container.dart' as di;
 import 'package:fusion_box/presentation/pages/home_page.dart';
-import 'package:fusion_box/presentation/widgets/common/permission_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +32,7 @@ class FusionBoxApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const PermissionWrapper(child: HomePage()),
+      home: const HomePage(),
       debugShowCheckedModeBanner: false,
     );
   }

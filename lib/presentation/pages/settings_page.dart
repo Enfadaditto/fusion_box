@@ -10,6 +10,8 @@ import 'package:fusion_box/presentation/bloc/settings/settings_state.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/pokemon_live_icon.dart';
+import 'package:fusion_box/presentation/widgets/common/cache_debug_widget.dart';
+import 'package:fusion_box/core/services/permission_service.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -57,6 +59,22 @@ class SettingsPage extends StatelessWidget {
                     const SnackBar(
                       content: Text('Game path cleared successfully!'),
                       backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+
+                if (state is StoragePermissionDenied) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: Colors.orange,
+                      duration: const Duration(seconds: 4),
+                      action: SnackBarAction(
+                        label: 'Settings',
+                        onPressed: () {
+                          PermissionService.showPermissionDeniedDialog(context);
+                        },
+                      ),
                     ),
                   );
                 }
@@ -126,6 +144,38 @@ class SettingsPage extends StatelessWidget {
                                     ),
                                     SizedBox(width: 12),
                                     Text('Checking current path...'),
+                                  ],
+                                );
+                              }
+
+                              if (state is StoragePermissionRequesting) {
+                                return const Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text('Requesting storage permissions...'),
+                                  ],
+                                );
+                              }
+
+                              if (state is StoragePermissionGranted) {
+                                return const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Permissions granted! Selecting directory...',
+                                    ),
                                   ],
                                 );
                               }
@@ -315,6 +365,74 @@ class SettingsPage extends StatelessWidget {
                                               )
                                               : PokemonLiveIcon(isLive: true),
                                     ),
+                                    const SizedBox(height: 16),
+                                    SwitchListTile(
+                                      title: const Text(
+                                        'Same Pokemon Fusions',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      subtitle: const Text(
+                                        'Include same Pokemon fusions in addition to different Pokemon fusions',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      value: state.useAxAFusions,
+                                      onChanged: (value) {
+                                        context.read<SettingsBloc>().add(
+                                          ToggleAxAFusions(value),
+                                        );
+                                      },
+                                      contentPadding: const EdgeInsets.only(
+                                        left: 0,
+                                        right: 0,
+                                      ),
+                                      secondary:
+                                          state.useAxAFusions
+                                              ? Image.asset(
+                                                'assets/images/132.132f.png',
+                                                width: 32.0,
+                                                height: 32.0,
+                                                fit: BoxFit.contain,
+                                              )
+                                              : Container(
+                                                width: 32.0,
+                                                height: 32.0,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[900],
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  border: Border.all(
+                                                    color: Colors.grey[600]!,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.block,
+                                                      color: Colors.grey[600],
+                                                      size: 16,
+                                                    ),
+                                                    const SizedBox(height: 1),
+                                                    Text(
+                                                      'Disabled',
+                                                      style: TextStyle(
+                                                        fontSize: 6,
+                                                        color: Colors.grey[600],
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                    ),
                                   ],
                                 );
                               }
@@ -347,6 +465,12 @@ class SettingsPage extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 20),
+
+                  // Cache Debug Section (only in debug mode)
+                  if (const bool.fromEnvironment('dart.vm.product') == false)
+                    const CacheDebugWidget(),
 
                   const SizedBox(height: 20),
 

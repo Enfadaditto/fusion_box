@@ -8,12 +8,15 @@ import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_bloc.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_state.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_event.dart';
+import 'package:fusion_box/presentation/bloc/settings/settings_bloc.dart';
+import 'package:fusion_box/presentation/bloc/settings/settings_event.dart';
+import 'package:fusion_box/presentation/bloc/settings/settings_state.dart';
 
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
 import 'package:fusion_box/presentation/pages/settings_page.dart';
 import 'package:fusion_box/presentation/pages/fusion_grid_loading_page.dart';
 import 'package:fusion_box/presentation/widgets/common/debug_icon.dart';
-import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
+import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_icon.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
@@ -116,18 +119,33 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
         BlocProvider(
           create: (context) => sl<GameSetupBloc>()..add(CheckGamePath()),
         ),
+        BlocProvider(
+          create: (context) => sl<SettingsBloc>()..add(LoadSettings()),
+        ),
       ],
-      child: BlocListener<FusionGridBloc, FusionGridState>(
-        listener: (context, state) {
-          if (state is FusionGridError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: ${state.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
+      child: MultiBlocListener(
+        listeners: [
+          BlocListener<FusionGridBloc, FusionGridState>(
+            listener: (context, state) {
+              if (state is FusionGridError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: ${state.message}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+          BlocListener<SettingsBloc, SettingsState>(
+            listener: (context, state) {
+              if (state is SettingsLoaded) {
+                // Force a rebuild of the entire Pokemon list when settings change
+                setState(() {});
+              }
+            },
+          ),
+        ],
         child: Scaffold(
           appBar: AppBar(
             title: const Text('Pokemon Fusion Box'),
@@ -395,10 +413,11 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                 pokemon,
                                               ) {
                                                 return Chip(
-                                                  avatar: CachedPokemonIcon(
-                                                    pokemon: pokemon,
-                                                    size: 24,
-                                                  ),
+                                                  avatar:
+                                                      StreamBasedPokemonIcon(
+                                                        pokemon: pokemon,
+                                                        size: 24,
+                                                      ),
                                                   label: Text(
                                                     '${pokemon.pokedexNumber}. ${pokemon.name}',
                                                     style: const TextStyle(
@@ -573,7 +592,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                       .contains(pokemon);
 
                                   return ListTile(
-                                    leading: CachedPokemonIconSmall(
+                                    leading: StreamBasedPokemonIconSmall(
                                       pokemon: pokemon,
                                     ),
                                     title: Text(

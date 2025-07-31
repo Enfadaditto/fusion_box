@@ -48,11 +48,6 @@ class SpriteDownloadService {
       // Download the sprite
       final success = await _downloadSprite(url, localSpritePath);
 
-      // If successful, log the downloaded sprite
-      if (success) {
-        await _logDownloadedSprite(localSpritePath);
-      }
-
       return success;
     } catch (e) {
       return false;
@@ -129,7 +124,6 @@ class SpriteDownloadService {
 
         if (success) {
           downloadedVariants.add(variant);
-          await _logDownloadedSprite(variantPath);
         } else {
           // Assume 404 or error, stop trying more variants
           break;
@@ -200,19 +194,6 @@ class SpriteDownloadService {
   bool _isValidImageResponse(http.Response response) {
     final contentType = response.headers['content-type'] ?? '';
     return contentType.startsWith('image/') && response.bodyBytes.isNotEmpty;
-  }
-
-  /// Log a successfully downloaded sprite
-  Future<void> _logDownloadedSprite(String spritePath) async {
-    final downloadedSprites =
-        _prefs.getStringList(AppConfig.downloadedSpritesLogKey) ?? [];
-    if (!downloadedSprites.contains(spritePath)) {
-      downloadedSprites.add(spritePath);
-      await _prefs.setStringList(
-        AppConfig.downloadedSpritesLogKey,
-        downloadedSprites,
-      );
-    }
   }
 
   /// Get list of downloaded sprites

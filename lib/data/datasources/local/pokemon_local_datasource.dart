@@ -1616,7 +1616,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'types': ['Electric'],
       },
       390: {
-        'name': 'Aaron',
+        'name': 'Aron',
         'types': ['Steel', 'Rock'],
       },
       391: {
