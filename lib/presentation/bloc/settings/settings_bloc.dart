@@ -32,6 +32,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           useAxAFusions: useAxAFusions,
         ),
       );
+
+      // Notify other parts of the app about the loaded settings
+      SettingsNotificationService().notifySimpleIconsChanged(useSimpleIcons);
     } catch (e) {
       emit(SettingsError('Failed to load settings: $e'));
     }
