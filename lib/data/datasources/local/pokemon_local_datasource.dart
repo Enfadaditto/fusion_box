@@ -1393,7 +1393,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       334: {
         'name': 'Flygon',
-        'types': ['Dragon', 'Ground'],
+        'types': ['Ground', 'Dragon'],
       },
       335: {
         'name': 'Milotic',
@@ -1821,7 +1821,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       441: {
         'name': 'Noivern',
-        'types': ['Dragon', 'Flying'],
+        'types': ['Flying', 'Dragon'],
       },
       442: {
         'name': 'Swablu',
@@ -1892,7 +1892,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'types': ['Grass', 'Dark'],
       },
       459: {
-        'name': 'Sandyghast',
+        'name': 'Sandygast',
         'types': ['Ground', 'Ghost'],
       },
       460: {
@@ -1920,11 +1920,11 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'types': ['Rock'],
       },
       466: {
-        'name': 'Meloeta Aria',
+        'name': 'Meloetta Aria',
         'types': ['Normal', 'Psychic'],
       },
       467: {
-        'name': 'Meloeta Pirouette',
+        'name': 'Meloetta Pirouette',
         'types': ['Normal', 'Fighting'],
       },
       468: {

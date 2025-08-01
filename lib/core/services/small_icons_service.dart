@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 
 class SmallIconsService {
   static const String _baseUrl = 'https://pokeapi.co/api/v2/pokemon';
-  static const String _pokemonIconUrl =
-      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/icons';
+  // static const String _pokemonIconUrl =
+  //     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/icons';
   // static const String _pokemonHomeIconUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home';
 
   // Singleton
@@ -55,32 +55,30 @@ class SmallIconsService {
       case 'farfetch\'d':
       case 'farfetchd':
         return 'farfetchd';
-      //TODO: Fix giratina
       case 'giratina':
         return 'giratina-origin';
-      //TODO: Fix meloetta
       case 'meloetta-aria':
       case 'meloetta aria':
         return 'meloetta-aria';
       case 'meloetta-pirouette':
       case 'meloetta pirouette':
         return 'meloetta-pirouette';
-      //TODO: Fix aegislash
       case 'aegislash':
         return 'aegislash-blade';
       case 'pumpkaboo':
         return 'pumpkaboo-average';
       case 'gourgeist':
         return 'gourgeist-average';
-      //TODO: Fix the oricorios - only baile is correct
       case 'oricorio-baile':
       case 'oricorio baile':
         return 'oricorio-baile';
       case 'oricorio-pom-pom':
+      case 'oricorio pom-pom':
       case 'oricorio pom pom':
         return 'oricorio-pom-pom';
       case 'oricorio-pa-u':
-      case 'oricorio pau':
+      case 'oricorio pa-u':
+      case 'oricorio pa u':
         return 'oricorio-pau';
       case 'oricorio-sensu':
       case 'oricorio sensu':
@@ -88,18 +86,21 @@ class SmallIconsService {
       case 'lycanroc-midday':
       case 'lycanroc midday':
         return 'lycanroc-midday';
-      //TODO: Fix the lycanroc midnight
       case 'lycanroc-midnight':
       case 'lycanroc midnight':
         return 'lycanroc-midnight';
-      //TODO: Fix the miniors
+      //TODO: Fix the miniors - ahora no me funciona el uno
       case 'minior-core':
+      case 'minior core':
         return 'minior-violet-meteor';
-      case 'minior':
+      case 'minior-violet':
+      case 'minior violet':
         return 'minior-violet';
       case 'mimikyu':
         return 'mimikyu-disguised';
-      // TODO: Add ultra necrozma, fix shandyghast,
+      case 'ultra-necrozma':
+      case 'ultra necrozma':
+        return 'necrozma-ultra';
       default:
         // Replace spaces and special characters with hyphens
         return normalized
@@ -130,6 +131,7 @@ class SmallIconsService {
     try {
       // Check if we already have the ID cached
       int? pokemonId = _pokemonIdCache[normalizedName];
+      String iconUrl = '';
 
       if (pokemonId == null) {
         final response = await http.get(Uri.parse('$_baseUrl/$normalizedName'));
@@ -138,12 +140,13 @@ class SmallIconsService {
           final data = json.decode(response.body);
           pokemonId = data['id'] as int;
           _pokemonIdCache[normalizedName] = pokemonId;
+          iconUrl =
+              data['sprites']['versions']['generation-vii']['icons']['front_default'];
         } else {
           throw Exception('Pokemon not found: $pokemonName');
         }
       }
 
-      final iconUrl = '$_pokemonIconUrl/$pokemonId.png';
       _pokemonIconUrlCache[normalizedName] = iconUrl;
       return iconUrl;
     } catch (e) {
