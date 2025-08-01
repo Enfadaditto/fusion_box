@@ -5,6 +5,7 @@ import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
+import 'package:fusion_box/presentation/bloc/settings/settings_bloc.dart';
 import 'package:fusion_box/presentation/pages/fusion_grid_page.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart';
 
@@ -72,12 +73,16 @@ class _FusionGridLoadingPageState extends State<FusionGridLoadingPage>
         if (state is FusionGridLoaded) {
           // Navegar al grid cuando esté completamente listo con transición fluida
           final fusionGridBloc = context.read<FusionGridBloc>();
+          final settingsBloc = context.read<SettingsBloc>();
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
               pageBuilder:
                   (context, animation, secondaryAnimation) =>
-                      BlocProvider.value(
-                        value: fusionGridBloc,
+                      MultiBlocProvider(
+                        providers: [
+                          BlocProvider.value(value: fusionGridBloc),
+                          BlocProvider.value(value: settingsBloc),
+                        ],
                         child: const FusionGridPage(),
                       ),
               transitionsBuilder: (

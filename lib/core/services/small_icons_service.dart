@@ -143,6 +143,9 @@ class SmallIconsService {
         } else {
           throw Exception('Pokemon not found: $pokemonName');
         }
+      } else {
+        // If we have the ID cached, we need to construct the URL
+        iconUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-vii/icons/$pokemonId.png';
       }
 
       _pokemonIconUrlCache[normalizedName] = iconUrl;

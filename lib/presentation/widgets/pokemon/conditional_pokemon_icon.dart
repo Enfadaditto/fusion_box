@@ -18,29 +18,34 @@ class ConditionalPokemonIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SettingsBloc, SettingsState>(
-      buildWhen: (previous, current) {
-        // Rebuild only when useSimpleIcons changes
-        if (previous is SettingsLoaded && current is SettingsLoaded) {
-          return previous.useSimpleIcons != current.useSimpleIcons;
-        }
-        return true;
-      },
-      builder: (context, state) {
-        if (state is SettingsLoaded) {
-          // If useSimpleIcons is true, show the simple colored icons
-          if (state.useSimpleIcons) {
-            return CachedPokemonIcon(pokemon: pokemon, size: size);
-          } else {
-            // If useSimpleIcons is false, show the small Pokemon icons from API
-            return PokemonSmallIcon(pokemon: pokemon, size: size);
+    try {
+      return BlocBuilder<SettingsBloc, SettingsState>(
+        buildWhen: (previous, current) {
+          // Rebuild only when useSimpleIcons changes
+          if (previous is SettingsLoaded && current is SettingsLoaded) {
+            return previous.useSimpleIcons != current.useSimpleIcons;
           }
-        }
+          return true;
+        },
+        builder: (context, state) {
+          if (state is SettingsLoaded) {
+            // If useSimpleIcons is true, show the simple colored icons
+            if (state.useSimpleIcons) {
+              return CachedPokemonIcon(pokemon: pokemon, size: size);
+            } else {
+              // If useSimpleIcons is false, show the small Pokemon icons from API
+              return PokemonSmallIcon(pokemon: pokemon, size: size);
+            }
+          }
 
-        // Default to simple icons while loading settings
-        return CachedPokemonIcon(pokemon: pokemon, size: size);
-      },
-    );
+          // Default to simple icons while loading settings
+          return CachedPokemonIcon(pokemon: pokemon, size: size);
+        },
+      );
+    } catch (e) {
+      // Fallback to simple icons if there's any error with the settings bloc
+      return CachedPokemonIcon(pokemon: pokemon, size: size);
+    }
   }
 }
 

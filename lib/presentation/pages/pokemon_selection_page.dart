@@ -450,6 +450,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                               // Crear nuevo FusionGridBloc y navegar con transición fluida
                                               final fusionGridBloc =
                                                   sl<FusionGridBloc>();
+                                              final settingsBloc = context.read<SettingsBloc>();
 
                                               Navigator.of(context).push(
                                                 PageRouteBuilder(
@@ -458,8 +459,11 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                         context,
                                                         animation,
                                                         secondaryAnimation,
-                                                      ) => BlocProvider.value(
-                                                        value: fusionGridBloc,
+                                                      ) => MultiBlocProvider(
+                                                        providers: [
+                                                          BlocProvider.value(value: fusionGridBloc),
+                                                          BlocProvider.value(value: settingsBloc),
+                                                        ],
                                                         child: FusionGridLoadingPage(
                                                           selectedPokemon:
                                                               state
