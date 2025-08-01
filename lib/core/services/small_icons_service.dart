@@ -89,12 +89,10 @@ class SmallIconsService {
       case 'lycanroc-midnight':
       case 'lycanroc midnight':
         return 'lycanroc-midnight';
-      //TODO: Fix the miniors - ahora no me funciona el uno
       case 'minior-core':
       case 'minior core':
         return 'minior-violet-meteor';
-      case 'minior-violet':
-      case 'minior violet':
+      case 'minior':
         return 'minior-violet';
       case 'mimikyu':
         return 'mimikyu-disguised';
