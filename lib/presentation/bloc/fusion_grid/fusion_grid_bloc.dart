@@ -17,6 +17,9 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
     on<ZoomIn>(_onZoomIn);
     on<ZoomOut>(_onZoomOut);
     on<ResetZoom>(_onResetZoom);
+    on<ToggleFusionSelection>(_onToggleFusionSelection);
+    on<ToggleComparisonMode>(_onToggleComparisonMode);
+    on<ClearSelectedFusions>(_onClearSelectedFusions);
   }
 
   Future<void> _onGenerateFusionGrid(
@@ -76,6 +79,48 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
     final currentState = state;
     if (currentState is FusionGridLoaded) {
       emit(currentState.copyWith(zoomLevel: 1.0));
+    }
+  }
+
+  void _onToggleFusionSelection(
+    ToggleFusionSelection event,
+    Emitter<FusionGridState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FusionGridLoaded) {
+      final fusionId = event.fusion.fusionId;
+      final newSelectedFusionIds = Set<String>.from(currentState.selectedFusionIds);
+      
+      if (newSelectedFusionIds.contains(fusionId)) {
+        newSelectedFusionIds.remove(fusionId);
+      } else {
+        newSelectedFusionIds.add(fusionId);
+      }
+      
+      emit(currentState.copyWith(selectedFusionIds: newSelectedFusionIds));
+    }
+  }
+
+  void _onToggleComparisonMode(
+    ToggleComparisonMode event,
+    Emitter<FusionGridState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FusionGridLoaded) {
+      emit(currentState.copyWith(isComparisonMode: !currentState.isComparisonMode));
+    }
+  }
+
+  void _onClearSelectedFusions(
+    ClearSelectedFusions event,
+    Emitter<FusionGridState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FusionGridLoaded) {
+      emit(currentState.copyWith(
+        selectedFusionIds: const {},
+        isComparisonMode: false,
+      ));
     }
   }
 }

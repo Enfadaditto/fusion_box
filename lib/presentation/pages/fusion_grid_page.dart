@@ -3,8 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
+import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/conditional_pokemon_icon.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
+import 'package:fusion_box/presentation/widgets/fusion/fusion_details_dialog.dart';
+import 'package:fusion_box/presentation/pages/fusions_comparator.dart';
 
 class FusionGridPage extends StatefulWidget {
   const FusionGridPage({super.key});
@@ -20,6 +23,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
   static const double _minScale = 0.5;
   static const double _maxScale = 3.0;
   static const double _scaleStep = 0.25;
+  bool _isToolboxVisible = true;
 
   @override
   void dispose() {
@@ -51,6 +55,28 @@ class _FusionGridPageState extends State<FusionGridPage> {
     _transformationController.value = matrix;
   }
 
+  void _navigateToComparison(BuildContext context, FusionGridLoaded state) {
+    final selectedFusions = <Fusion>[];
+
+    for (int row = 0; row < state.fusionGrid.length; row++) {
+      for (int col = 0; col < state.fusionGrid[row].length; col++) {
+        final fusion = state.fusionGrid[row][col];
+        if (fusion != null &&
+            state.selectedFusionIds.contains(fusion.fusionId)) {
+          selectedFusions.add(fusion);
+        }
+      }
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) =>
+                FusionsComparatorPage(selectedFusions: selectedFusions),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,23 +84,36 @@ class _FusionGridPageState extends State<FusionGridPage> {
         title: const Text('Fusion Grid'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         actions: [
-          // Indicador de zoom actual
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: Colors.black26,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${(_currentScale * 100).round()}%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          // Indicador de fusiones seleccionadas
+          BlocBuilder<FusionGridBloc, FusionGridState>(
+            builder: (context, state) {
+              if (state is FusionGridLoaded &&
+                  state.selectedFusionIds.isNotEmpty) {
+                return Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[600]!),
+                    ),
+                    child: Text(
+                      '${(_currentScale * 100).round()}%',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
       ),
@@ -124,61 +163,83 @@ class _FusionGridPageState extends State<FusionGridPage> {
           }
 
           if (state is FusionGridLoaded) {
-            return _buildFusionGrid(context, state);
+            return Column(
+              children: [
+                Expanded(child: _buildFusionGrid(context, state)),
+                // Botón COMPARE en la parte inferior
+                if (state.selectedFusionIds.length >= 2)
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      16 + MediaQuery.of(context).padding.bottom,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => _navigateToComparison(context, state),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[700],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'COMPARE',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Indicador de notificación
+                          Positioned(
+                            top: -8,
+                            right: -8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${state.selectedFusionIds.length}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            );
           }
 
           return const Center(child: Text('No fusion grid available'));
         },
       ),
-      // Botones flotantes de zoom
-      floatingActionButton: _buildZoomControls(),
-    );
-  }
-
-  Widget _buildZoomControls() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Zoom In
-        FloatingActionButton.small(
-          heroTag: "zoom_in",
-          onPressed: _currentScale < _maxScale ? _zoomIn : null,
-          backgroundColor:
-              _currentScale < _maxScale
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
-          child: const Icon(Icons.zoom_in),
-        ),
-        const SizedBox(height: 8),
-
-        // Reset Zoom
-        FloatingActionButton.small(
-          heroTag: "zoom_reset",
-          onPressed: _currentScale != 1.0 ? _resetZoom : null,
-          backgroundColor:
-              _currentScale != 1.0
-                  ? Theme.of(context).colorScheme.secondary
-                  : Colors.grey,
-          child: const Icon(Icons.center_focus_strong),
-        ),
-        const SizedBox(height: 8),
-
-        // Zoom Out
-        FloatingActionButton.small(
-          heroTag: "zoom_out",
-          onPressed: _currentScale > _minScale ? _zoomOut : null,
-          backgroundColor:
-              _currentScale > _minScale
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.grey,
-          child: const Icon(Icons.zoom_out),
-        ),
-      ],
     );
   }
 
   Widget _buildFusionGrid(BuildContext context, FusionGridLoaded state) {
-    final gridSize = state.selectedPokemon.length;
     final gridData = _buildGridData(state);
 
     return Column(
@@ -186,19 +247,10 @@ class _FusionGridPageState extends State<FusionGridPage> {
         // Header con información
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
           color: Theme.of(context).colorScheme.primaryContainer,
           child: Column(
             children: [
-              Text(
-                '${gridSize}x$gridSize Fusion Grid',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -212,6 +264,127 @@ class _FusionGridPageState extends State<FusionGridPage> {
               ),
             ],
           ),
+        ),
+
+        // Toolbox con acordeón y marcador
+        Column(
+          children: [
+            // Contenido de la toolbox
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              height: _isToolboxVisible ? 50 : 0,
+              child: Container(
+                width: double.infinity,
+                height: 50,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                color: Colors.grey[800],
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _isToolboxVisible ? 1.0 : 0.0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Botones de zoom
+                      IconButton(
+                        icon: const Icon(Icons.zoom_out, size: 18),
+                        onPressed: _currentScale > _minScale ? _zoomOut : null,
+                        tooltip: 'Zoom Out',
+                        style: IconButton.styleFrom(
+                          foregroundColor:
+                              _currentScale > _minScale
+                                  ? Colors.white
+                                  : Colors.grey[400],
+                          iconSize: 18,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(32, 32),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.center_focus_strong, size: 18),
+                        onPressed: _currentScale != 1.0 ? _resetZoom : null,
+                        tooltip: 'Reset Zoom',
+                        style: IconButton.styleFrom(
+                          foregroundColor:
+                              _currentScale != 1.0
+                                  ? Colors.white
+                                  : Colors.grey[400],
+                          iconSize: 18,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(32, 32),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.zoom_in, size: 18),
+                        onPressed: _currentScale < _maxScale ? _zoomIn : null,
+                        tooltip: 'Zoom In',
+                        style: IconButton.styleFrom(
+                          foregroundColor:
+                              _currentScale < _maxScale
+                                  ? Colors.white
+                                  : Colors.grey[400],
+                          iconSize: 18,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(32, 32),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Marcador con flecha animada
+            Container(
+              width: double.infinity,
+              height: 20,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isToolboxVisible = !_isToolboxVisible;
+                      });
+                    },
+                    child: Container(
+                      width: 60,
+                      height: 20,
+                      margin: const EdgeInsets.only(right: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[800],
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: AnimatedRotation(
+                        duration: const Duration(milliseconds: 300),
+                        turns: _isToolboxVisible ? 0.5 : 0.0,
+                        child: Icon(
+                          Icons.keyboard_arrow_up,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
 
         // Grid con zoom mejorado
@@ -389,26 +562,105 @@ class _FusionGridPageState extends State<FusionGridPage> {
       backgroundColor = Colors.grey[900];
     }
 
-    return Container(
-      height: 100,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: backgroundColor),
-      child:
-          fusion != null
-              ? _buildFusionContent(context, fusion, isAutogenerated)
-              : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.block, color: Colors.grey[600], size: 20),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Disabled',
-                      style: TextStyle(fontSize: 8, color: Colors.grey[600]),
+    return BlocBuilder<FusionGridBloc, FusionGridState>(
+      builder: (context, state) {
+        final isSelected =
+            state is FusionGridLoaded &&
+            fusion != null &&
+            state.selectedFusionIds.contains(fusion.fusionId);
+
+        return Stack(
+          children: [
+            Container(
+              height: 100,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(color: backgroundColor),
+              child:
+                  fusion != null
+                      ? _buildFusionContent(context, fusion, isAutogenerated)
+                      : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.block,
+                              color: Colors.grey[600],
+                              size: 20,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Disabled',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+            ),
+            // Filtro gris si está seleccionado
+            if (isSelected)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () {
+                    context.read<FusionGridBloc>().add(
+                      ToggleFusionSelection(fusion),
+                    );
+                  },
+                  onLongPress: () {
+                    // Mostrar detalles de la fusión
+                    FusionDetailsDialog.show(context, fusion);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ],
+                  ),
                 ),
               ),
+            // Checkbox en la esquina superior izquierda (solo visible si hay fusiones seleccionadas)
+            if (fusion != null &&
+                state is FusionGridLoaded &&
+                state.selectedFusionIds.isNotEmpty)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: GestureDetector(
+                  onTap: () {
+                    context.read<FusionGridBloc>().add(
+                      ToggleFusionSelection(fusion),
+                    );
+                  },
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color:
+                          isSelected
+                              ? Colors.blue
+                              : Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isSelected ? Colors.blue : Colors.grey,
+                        width: 1,
+                      ),
+                    ),
+                    child:
+                        isSelected
+                            ? const Icon(
+                              Icons.check,
+                              size: 14,
+                              color: Colors.white,
+                            )
+                            : null,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -417,190 +669,85 @@ class _FusionGridPageState extends State<FusionGridPage> {
     Fusion fusion,
     bool isAutogenerated,
   ) {
-    return InkWell(
-      onTap: () {
-        _showFusionDetails(context, fusion);
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Sprite de la fusión (usar sprite real si está disponible)
-          fusion.primarySprite != null
-              ? SpriteFromSheet(
-                spriteData: fusion.primarySprite!,
-                width: 60,
-                height: 60,
-                fit: BoxFit.contain,
-              )
-              : Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.purple[100],
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.purple[300]!),
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Colors.purple,
-                  size: 20,
-                ),
-              ),
-          const SizedBox(height: 2),
-          // Nombre de la fusión
-          Text(
-            '${fusion.headPokemon.name}/${fusion.bodyPokemon.name}',
-            style: TextStyle(
-              fontSize: 7,
-              fontWeight: FontWeight.bold,
-              color: isAutogenerated ? Colors.grey[300] : Colors.white,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // Tipos
-          Text(
-            fusion.types.join('/'),
-            style: TextStyle(
-              fontSize: 7,
-              color: isAutogenerated ? Colors.grey[400] : Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+    return BlocBuilder<FusionGridBloc, FusionGridState>(
+      builder: (context, state) {
+        final hasSelectedFusions =
+            state is FusionGridLoaded && state.selectedFusionIds.isNotEmpty;
 
-  void _showFusionDetails(BuildContext context, Fusion fusion) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[850],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: null,
-        contentPadding: const EdgeInsets.all(24),
-                 content: Column(
-           mainAxisSize: MainAxisSize.min,
-           crossAxisAlignment: CrossAxisAlignment.center,
-           children: [
-             // Head and Body information
-             Row(
-               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-               children: [
-                 Column(
-                   children: [
-                     Text(
-                       'Head',
-                       style: TextStyle(
-                         fontSize: 12,
-                         fontWeight: FontWeight.bold,
-                         color: Colors.grey[400],
-                       ),
-                     ),
-                     const SizedBox(height: 4),
-                     Text(
-                       '${fusion.headPokemon.name} (#${fusion.headPokemon.pokedexNumber})',
-                       style: const TextStyle(fontSize: 14, color: Colors.white),
-                     ),
-                   ],
-                 ),
-                 Column(
-                   children: [
-                     Text(
-                       'Body',
-                       style: TextStyle(
-                         fontSize: 12,
-                         fontWeight: FontWeight.bold,
-                         color: Colors.grey[400],
-                       ),
-                     ),
-                     const SizedBox(height: 4),
-                     Text(
-                       '${fusion.bodyPokemon.name} (#${fusion.bodyPokemon.pokedexNumber})',
-                       style: const TextStyle(fontSize: 14, color: Colors.white),
-                     ),
-                   ],
-                 ),
-               ],
-             ),
-             
-             const SizedBox(height: 16),
-             
-             // Fusion Sprite
-             Container(
-               padding: const EdgeInsets.all(8),
-               decoration: BoxDecoration(
-                 color: Colors.grey[800],
-                 borderRadius: BorderRadius.circular(8),
-                 border: Border.all(color: Colors.grey[600]!),
-               ),
-               child: fusion.primarySprite != null
-                   ? SpriteFromSheet(
-                       spriteData: fusion.primarySprite!,
-                       width: 120,
-                       height: 120,
-                       fit: BoxFit.contain,
-                     )
-                   : Container(
-                       width: 120,
-                       height: 120,
-                       decoration: BoxDecoration(
-                         color: Colors.purple[100],
-                         borderRadius: BorderRadius.circular(4),
-                         border: Border.all(color: Colors.purple[300]!),
-                       ),
-                       child: const Icon(
-                         Icons.auto_awesome,
-                         color: Colors.purple,
-                         size: 40,
-                       ),
-                     ),
-             ),
-             
-             const SizedBox(height: 16),
-             
-             // Types
-             Text(
-               fusion.types.join(' / '),
-               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
-               textAlign: TextAlign.center,
-             ),
-             
-             // Autogenerated sprite indicator
-             if (fusion.primarySprite?.isAutogenerated == true) ...[
-               const SizedBox(height: 12),
-               Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                 decoration: BoxDecoration(
-                   color: Colors.orange[100],
-                   borderRadius: BorderRadius.circular(12),
-                   border: Border.all(color: Colors.orange[300]!),
-                 ),
-                 child: Row(
-                   mainAxisSize: MainAxisSize.min,
-                   children: [
-                     Icon(Icons.auto_awesome, size: 16, color: Colors.orange[700]),
-                     const SizedBox(width: 4),
-                     Text(
-                       'Autogenerated sprite',
-                       style: TextStyle(
-                         fontSize: 12,
-                         color: Colors.orange[700],
-                         fontStyle: FontStyle.italic,
-                       ),
-                     ),
-                   ],
-                 ),
-               ),
-             ],
-           ],
-         ),
-      ),
+        return InkWell(
+          onTap: () {
+            if (hasSelectedFusions) {
+              // Si hay fusiones seleccionadas, tap selecciona (solo si no está ya seleccionada)
+              if (!state.selectedFusionIds.contains(fusion.fusionId)) {
+                context.read<FusionGridBloc>().add(
+                  ToggleFusionSelection(fusion),
+                );
+              }
+            } else {
+              // Si no hay fusiones seleccionadas, tap muestra info
+              FusionDetailsDialog.show(context, fusion);
+            }
+          },
+          onLongPress: () {
+            if (hasSelectedFusions) {
+              // Si hay fusiones seleccionadas, longPress muestra info
+              FusionDetailsDialog.show(context, fusion);
+            } else {
+              // Si no hay fusiones seleccionadas, longPress selecciona
+              context.read<FusionGridBloc>().add(ToggleFusionSelection(fusion));
+            }
+          },
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Sprite de la fusión (usar sprite real si está disponible)
+              fusion.primarySprite != null
+                  ? SpriteFromSheet(
+                    spriteData: fusion.primarySprite!,
+                    width: 100,
+                    height: 60,
+                    fit: BoxFit.contain,
+                  )
+                  : Container(
+                    width: 100,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.purple[100],
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.purple[300]!),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.purple,
+                      size: 20,
+                    ),
+                  ),
+              const SizedBox(height: 2),
+              // Nombre de la fusión
+              Text(
+                '${fusion.headPokemon.name}/${fusion.bodyPokemon.name}',
+                style: TextStyle(
+                  fontSize: 7,
+                  fontWeight: FontWeight.bold,
+                  color: isAutogenerated ? Colors.grey[300] : Colors.white,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // Tipos
+              Text(
+                fusion.types.join('/'),
+                style: TextStyle(
+                  fontSize: 7,
+                  color: isAutogenerated ? Colors.grey[400] : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
