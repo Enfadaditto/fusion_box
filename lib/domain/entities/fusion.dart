@@ -1,4 +1,5 @@
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 
 class Fusion {
@@ -7,6 +8,7 @@ class Fusion {
   final List<String> availableSprites;
   final List<String> types;
   final SpriteData? primarySprite;
+  final PokemonStats? stats; // Nuevo campo opcional
 
   const Fusion({
     required this.headPokemon,
@@ -14,6 +16,7 @@ class Fusion {
     required this.availableSprites,
     required this.types,
     this.primarySprite,
+    this.stats, // Opcional para compatibilidad
   });
 
   String get fusionId =>

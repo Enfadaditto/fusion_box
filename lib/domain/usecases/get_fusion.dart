@@ -1,8 +1,10 @@
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/domain/repositories/pokemon_repository.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
+import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 
 class GetFusion {
   final SpriteRepository spriteRepository;
@@ -33,12 +35,23 @@ class GetFusion {
 
       final fusionTypes = _calculateFusionTypes(headPokemon, bodyPokemon);
 
+      // Calcular estadísticas de la fusión
+      PokemonStats? fusionStats;
+      try {
+        final calculator = FusionStatsCalculator();
+        fusionStats = await calculator.getStatsFromFusion(headPokemon, bodyPokemon);
+      } catch (e) {
+        // Si falla el cálculo de stats, continuar sin ellas
+        // TODO: Implementar logging apropiado
+      }
+
       return Fusion(
         headPokemon: headPokemon,
         bodyPokemon: bodyPokemon,
         availableSprites: spritePaths,
         types: fusionTypes,
         primarySprite: primarySprite,
+        stats: fusionStats,
       );
     } catch (e) {
       return null;

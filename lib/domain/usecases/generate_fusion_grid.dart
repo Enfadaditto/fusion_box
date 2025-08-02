@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/domain/usecases/get_fusion.dart';
 import 'package:fusion_box/core/services/settings_service.dart';
+import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 import 'package:image/image.dart' as img;
 
 // Clase para pasar parámetros al isolate
@@ -162,12 +164,26 @@ class GenerateFusionGrid {
             );
           }
 
+          // Calcular estadísticas de la fusión
+          PokemonStats? fusionStats;
+          try {
+            final calculator = FusionStatsCalculator();
+            fusionStats = await calculator.getStatsFromFusion(
+              fusion.headPokemon,
+              fusion.bodyPokemon,
+            );
+          } catch (e) {
+            // Si falla el cálculo de stats, continuar sin ellas
+            // TODO: Implementar logging apropiado
+          }
+
           final fusionWithSprite = Fusion(
             headPokemon: fusion.headPokemon,
             bodyPokemon: fusion.bodyPokemon,
             availableSprites: fusion.availableSprites,
             types: fusion.types,
             primarySprite: finalSprite,
+            stats: fusionStats,
           );
 
           row.add(fusionWithSprite);

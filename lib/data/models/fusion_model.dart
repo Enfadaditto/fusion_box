@@ -1,5 +1,6 @@
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 
 class FusionModel extends Fusion {
   const FusionModel({
@@ -8,6 +9,7 @@ class FusionModel extends Fusion {
     required super.availableSprites,
     required super.types,
     super.primarySprite,
+    super.stats,
   });
 
   factory FusionModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,16 @@ class FusionModel extends Fusion {
       ),
       availableSprites: List<String>.from(json['availableSprites'] as List),
       types: List<String>.from(json['types'] as List),
+      stats: json['stats'] != null 
+          ? PokemonStats(
+              hp: json['stats']['hp'] as int,
+              attack: json['stats']['attack'] as int,
+              defense: json['stats']['defense'] as int,
+              specialAttack: json['stats']['specialAttack'] as int,
+              specialDefense: json['stats']['specialDefense'] as int,
+              speed: json['stats']['speed'] as int,
+            )
+          : null,
     );
   }
 
@@ -41,6 +53,14 @@ class FusionModel extends Fusion {
       },
       'availableSprites': availableSprites,
       'types': types,
+      'stats': stats != null ? {
+        'hp': stats!.hp,
+        'attack': stats!.attack,
+        'defense': stats!.defense,
+        'specialAttack': stats!.specialAttack,
+        'specialDefense': stats!.specialDefense,
+        'speed': stats!.speed,
+      } : null,
     };
   }
 
@@ -51,6 +71,7 @@ class FusionModel extends Fusion {
       availableSprites: fusion.availableSprites,
       types: fusion.types,
       primarySprite: fusion.primarySprite,
+      stats: fusion.stats,
     );
   }
 }
