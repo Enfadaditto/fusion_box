@@ -17,6 +17,7 @@ import 'package:fusion_box/presentation/pages/settings_page.dart';
 import 'package:fusion_box/presentation/pages/fusion_grid_loading_page.dart';
 import 'package:fusion_box/presentation/widgets/common/debug_icon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_icon.dart';
+import 'package:fusion_box/core/services/settings_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
@@ -406,39 +407,63 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                           ),
                                         )
                                       else
-                                        Wrap(
-                                          spacing: 8,
-                                          children:
-                                              state.selectedPokemon.map((
-                                                pokemon,
-                                              ) {
-                                                return Chip(
-                                                  avatar:
-                                                      StreamBasedPokemonIcon(
-                                                        pokemon: pokemon,
-                                                        size: 24,
-                                                      ),
-                                                  label: Text(
-                                                    '${pokemon.pokedexNumber}. ${pokemon.name}',
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
+                                        StreamBuilder<bool>(
+                                          stream: SettingsNotificationService().simpleIconsStream,
+                                          initialData: SettingsNotificationService().currentValue,
+                                          builder: (context, snapshot) {
+                                            final useSimpleIcons = snapshot.data ?? true;
+
+                                            return Wrap(
+                                              spacing: 8,
+                                              runSpacing: useSimpleIcons ? 0 : 8,
+                                              children: state.selectedPokemon.map((pokemon) {
+                                                if (useSimpleIcons) {
+                                                  // Simple icons: (icon) num. nombre X
+                                                  return Chip(
+                                                    avatar: StreamBasedPokemonIcon(
+                                                      pokemon: pokemon,
+                                                      size: 24,
                                                     ),
-                                                  ),
-                                                  onDeleted: () {
-                                                    context
-                                                        .read<PokemonListBloc>()
-                                                        .add(
-                                                          RemoveSelectedPokemon(
-                                                            pokemon,
-                                                          ),
-                                                        );
-                                                  },
-                                                  backgroundColor:
-                                                      Theme.of(context)
-                                                          .colorScheme
-                                                          .surfaceContainerHighest,
-                                                );
+                                                    label: Text(
+                                                      '${pokemon.pokedexNumber}. ${pokemon.name}',
+                                                      style: const TextStyle(fontSize: 12),
+                                                    ),
+                                                    onDeleted: () {
+                                                      context.read<PokemonListBloc>().add(
+                                                            RemoveSelectedPokemon(pokemon),
+                                                          );
+                                                    },
+                                                    deleteIcon: const Icon(Icons.close, size: 16),
+                                                    backgroundColor: Theme.of(context)
+                                                        .colorScheme
+                                                        .surfaceContainerHighest,
+                                                  );
+                                                } else {
+                                                  // Live icons: (icon) X compacto
+                                                  return Chip(
+                                                    avatar: StreamBasedPokemonIcon(
+                                                      pokemon: pokemon,
+                                                      size: 24,
+                                                    ),
+                                                    label: const SizedBox.shrink(),
+                                                    labelPadding: EdgeInsets.zero,
+                                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                                                    padding: EdgeInsets.zero,
+                                                    onDeleted: () {
+                                                      context.read<PokemonListBloc>().add(
+                                                            RemoveSelectedPokemon(pokemon),
+                                                          );
+                                                    },
+                                                    deleteIcon: const Icon(Icons.close, size: 16),
+                                                    backgroundColor: Theme.of(context)
+                                                        .colorScheme
+                                                        .surfaceContainerHighest,
+                                                  );
+                                                }
                                               }).toList(),
+                                            );
+                                          },
                                         ),
                                       if (state.selectedPokemon.length >=
                                           2) ...[
