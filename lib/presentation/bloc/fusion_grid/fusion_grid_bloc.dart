@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/domain/usecases/generate_fusion_grid.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
+import 'package:fusion_box/domain/entities/fusion.dart';
 
 class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
   final GenerateFusionGrid generateFusionGrid;
@@ -20,6 +21,7 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
     on<ToggleFusionSelection>(_onToggleFusionSelection);
     on<ToggleComparisonMode>(_onToggleComparisonMode);
     on<ClearSelectedFusions>(_onClearSelectedFusions);
+    on<UpdateFusionSort>(_onUpdateFusionSort);
   }
 
   Future<void> _onGenerateFusionGrid(
@@ -37,13 +39,84 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
       // Emitir estado final cuando todo esté listo
       emit(
         FusionGridLoaded(
+          baseFusionGrid: gridWithSprites,
           fusionGrid: gridWithSprites,
           selectedPokemon: event.selectedPokemon,
+          sortKey: FusionSortKey.none,
+          sortOrder: FusionSortOrder.descending,
         ),
       );
     } catch (e) {
       emit(FusionGridError('Failed to generate fusion grid: $e'));
     }
+  }
+
+  void _onUpdateFusionSort(
+    UpdateFusionSort event,
+    Emitter<FusionGridState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FusionGridLoaded) {
+      // Restaurar orden base si se elige 'none'
+      final sorted = event.sortKey == FusionSortKey.none
+          ? currentState.baseFusionGrid
+          : _sortGridByStat(
+              currentState.baseFusionGrid,
+              event.sortKey,
+              event.sortOrder,
+            );
+      emit(currentState.copyWith(
+        fusionGrid: sorted,
+        sortKey: event.sortKey,
+        sortOrder: event.sortOrder,
+      ));
+    }
+  }
+
+  List<List<Fusion?>> _sortGridByStat(
+    List<List<Fusion?>> grid,
+    FusionSortKey sortKey,
+    FusionSortOrder sortOrder,
+  ) {
+    if (sortKey == FusionSortKey.none) return grid;
+
+    // Ordenamos cada fila por la métrica para que quede de izquierda a derecha
+    int valueOf(Fusion? fusion) {
+      if (fusion?.stats == null) return -0x3fffffff; // muy bajo para nulos
+      final s = fusion!.stats!;
+      switch (sortKey) {
+        case FusionSortKey.total:
+          return s.hp + s.attack + s.defense + s.specialAttack + s.specialDefense + s.speed;
+        case FusionSortKey.hp:
+          return s.hp;
+        case FusionSortKey.attack:
+          return s.attack;
+        case FusionSortKey.defense:
+          return s.defense;
+        case FusionSortKey.specialAttack:
+          return s.specialAttack;
+        case FusionSortKey.specialDefense:
+          return s.specialDefense;
+        case FusionSortKey.speed:
+          return s.speed;
+        case FusionSortKey.none:
+          return 0;
+      }
+    }
+
+    final sortedGrid = <List<Fusion?>>[];
+    for (final row in grid) {
+      final newRow = List<Fusion?>.from(row);
+      newRow.sort((a, b) {
+        final va = valueOf(a);
+        final vb = valueOf(b);
+        final cmp = va.compareTo(vb);
+        return sortOrder == FusionSortOrder.ascending ? cmp : -cmp;
+      });
+      sortedGrid.add(newRow);
+    }
+
+    return sortedGrid;
   }
 
   void _onClearFusionGrid(

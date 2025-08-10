@@ -4,7 +4,7 @@ import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
-import 'package:fusion_box/presentation/widgets/pokemon/conditional_pokemon_icon.dart';
+import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_icon.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_details_dialog.dart';
 import 'package:fusion_box/presentation/pages/fusions_comparator.dart';
@@ -257,7 +257,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
                   Icon(Icons.info_outline, size: 14, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    'Use pinch to zoom or buttons below',
+                    'Long press on a fusion to select it',
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
@@ -333,6 +333,87 @@ class _FusionGridPageState extends State<FusionGridPage> {
                           minimumSize: const Size(32, 32),
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      // Botón de ordenación por stat (menú)
+                      BlocBuilder<FusionGridBloc, FusionGridState>(
+                        builder: (context, state) {
+                          FusionSortKey sortKey = FusionSortKey.none;
+                          FusionSortOrder sortOrder = FusionSortOrder.descending;
+                          if (state is FusionGridLoaded) {
+                            sortKey = state.sortKey;
+                            sortOrder = state.sortOrder;
+                          }
+                          return PopupMenuButton<FusionSortKey>(
+                            tooltip: 'Sort by stat',
+                            onSelected: (key) {
+                              final current = context.read<FusionGridBloc>().state;
+                              FusionSortKey nextKey = key;
+                              FusionSortOrder nextOrder = FusionSortOrder.descending;
+                              if (current is FusionGridLoaded) {
+                                if (current.sortKey == key) {
+                                  nextOrder = current.sortOrder == FusionSortOrder.descending
+                                      ? FusionSortOrder.ascending
+                                      : FusionSortOrder.descending;
+                                } else {
+                                  nextKey = key;
+                                  nextOrder = FusionSortOrder.descending;
+                                }
+                              }
+                              context.read<FusionGridBloc>().add(
+                                    UpdateFusionSort(
+                                      sortKey: nextKey,
+                                      sortOrder: nextOrder,
+                                    ),
+                                  );
+                            },
+                            itemBuilder: (context) => [
+                              for (final key in FusionSortKey.values)
+                                PopupMenuItem<FusionSortKey>(
+                                  value: key,
+                                  child: Row(
+                                    children: [
+                                      Expanded(child: Text(_sortKeyLabel(key))),
+                                      if (key == sortKey)
+                                        Icon(
+                                          sortOrder == FusionSortOrder.descending
+                                              ? Icons.arrow_downward
+                                              : Icons.arrow_upward,
+                                          size: 18,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                            child: Container(
+                              height: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[700],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[600]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.sort,
+                                    size: 18,
+                                    color: state is FusionGridLoaded && state.sortKey != FusionSortKey.none
+                                        ? Colors.blue[300]
+                                        : Colors.white,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    state is FusionGridLoaded
+                                        ? _sortKeyLabel(state.sortKey)
+                                        : _sortKeyLabel(FusionSortKey.none),
+                                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -340,7 +421,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
             ),
 
             // Marcador con flecha animada
-            Container(
+            SizedBox(
               width: double.infinity,
               height: 20,
               child: Row(
@@ -408,6 +489,27 @@ class _FusionGridPageState extends State<FusionGridPage> {
     );
   }
 
+  String _sortKeyLabel(FusionSortKey key) {
+    switch (key) {
+      case FusionSortKey.none:
+        return 'None';
+      case FusionSortKey.total:
+        return 'Total';
+      case FusionSortKey.hp:
+        return 'HP';
+      case FusionSortKey.attack:
+        return 'Attack';
+      case FusionSortKey.defense:
+        return 'Defense';
+      case FusionSortKey.specialAttack:
+        return 'Sp. Atk';
+      case FusionSortKey.specialDefense:
+        return 'Sp. Def';
+      case FusionSortKey.speed:
+        return 'Speed';
+    }
+  }
+
   Widget _buildGridData(FusionGridLoaded state) {
     final gridSize = state.selectedPokemon.length;
 
@@ -417,7 +519,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
         border: TableBorder.all(color: Colors.grey[300]!, width: 1),
         defaultColumnWidth: const FixedColumnWidth(100),
         children: [
-          // Header row con nombres de Pokemon
+          // Header row con nombres de Pokemon o ranking si hay orden activo
           TableRow(
             decoration: BoxDecoration(color: Colors.grey[800]),
             children: [
@@ -437,28 +539,67 @@ class _FusionGridPageState extends State<FusionGridPage> {
                   ),
                 ),
               ),
-              // Headers de Pokemon (body)
-              ...state.selectedPokemon.map<Widget>(
-                (pokemon) => Container(
-                  height: 80,
-                  padding: const EdgeInsets.all(4),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ConditionalPokemonIcon(pokemon: pokemon, size: 32),
-                      const SizedBox(height: 2),
-                      Text(
-                        pokemon.name,
-                        style: const TextStyle(
-                          fontSize: 9,
-                          color: Colors.white,
+              // Headers de columnas
+              ...(state.sortKey == FusionSortKey.none
+                  // Sin orden: mostrar Pokemon (body)
+                  ? state.selectedPokemon.map<Widget>((pokemon) => Container(
+                        height: 80,
+                        padding: const EdgeInsets.all(4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            StreamBasedPokemonIcon(pokemon: pokemon, size: 32),
+                            const SizedBox(height: 2),
+                            Text(
+                              pokemon.name,
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                      ))
+                  // Con orden: mostrar ranking 1..N (columnas reordenadas por fila)
+                  : List.generate(gridSize, (index) {
+                      return Container(
+                        height: 80,
+                        padding: const EdgeInsets.all(4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[700],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey[600]!),
+                              ),
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Pos',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      );
+                    })),
             ],
           ),
 
@@ -497,7 +638,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ConditionalPokemonIcon(pokemon: headPokemon, size: 32),
+                      StreamBasedPokemonIcon(pokemon: headPokemon, size: 32),
                       const SizedBox(height: 2),
                       Text(
                         headPokemon.name,
@@ -614,7 +755,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -640,7 +781,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
                       color:
                           isSelected
                               ? Colors.blue
-                              : Colors.white.withOpacity(0.8),
+                              : Colors.white.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
                         color: isSelected ? Colors.blue : Colors.grey,

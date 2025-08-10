@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
+import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_state.dart';
 
 abstract class FusionGridEvent extends Equatable {
   const FusionGridEvent();
@@ -38,3 +39,13 @@ class ToggleFusionSelection extends FusionGridEvent {
 class ToggleComparisonMode extends FusionGridEvent {}
 
 class ClearSelectedFusions extends FusionGridEvent {}
+
+class UpdateFusionSort extends FusionGridEvent {
+  final FusionSortKey sortKey;
+  final FusionSortOrder sortOrder;
+
+  const UpdateFusionSort({required this.sortKey, required this.sortOrder});
+
+  @override
+  List<Object> get props => [sortKey, sortOrder];
+}

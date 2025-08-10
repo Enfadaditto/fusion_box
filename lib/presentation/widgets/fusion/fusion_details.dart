@@ -2,25 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
-import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
 import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 import 'package:fusion_box/core/utils/stat_color_utils.dart';
 
-class FusionComparisonCard extends StatefulWidget {
+class FusionDetailsContent extends StatefulWidget {
   final Fusion fusion;
-  final int index;
 
-  const FusionComparisonCard({
+  const FusionDetailsContent({
     super.key,
     required this.fusion,
-    required this.index,
   });
 
   @override
-  State<FusionComparisonCard> createState() => _FusionComparisonCardState();
+  State<FusionDetailsContent> createState() => _FusionDetailsContentState();
 }
 
-class _FusionComparisonCardState extends State<FusionComparisonCard> {
+class _FusionDetailsContentState extends State<FusionDetailsContent> {
   PokemonStats? _fusionStats;
   bool _isLoadingStats = true;
   String? _statsError;
@@ -29,6 +26,18 @@ class _FusionComparisonCardState extends State<FusionComparisonCard> {
   void initState() {
     super.initState();
     _loadFusionStats();
+  }
+
+  @override
+  void didUpdateWidget(covariant FusionDetailsContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fusion.fusionId != widget.fusion.fusionId) {
+      // Reset state and reload stats when the fusion changes
+      _fusionStats = null;
+      _statsError = null;
+      _isLoadingStats = true;
+      _loadFusionStats();
+    }
   }
 
   Future<void> _loadFusionStats() async {
@@ -128,16 +137,23 @@ class _FusionComparisonCardState extends State<FusionComparisonCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Total stats at the top
-          _buildStatRow('Total', totalStats, isTotal: true),
-          const Divider(color: Colors.grey, height: 16),
-          // Individual stats
+          Text(
+            'Stats',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[300],
+            ),
+          ),
+          const SizedBox(height: 12),
           _buildStatRow('HP', _fusionStats!.hp),
           _buildStatRow('Attack', _fusionStats!.attack),
           _buildStatRow('Defense', _fusionStats!.defense),
           _buildStatRow('Sp. Atk', _fusionStats!.specialAttack),
           _buildStatRow('Sp. Def', _fusionStats!.specialDefense),
           _buildStatRow('Speed', _fusionStats!.speed),
+          const Divider(color: Colors.grey, height: 24),
+          _buildStatRow('Total', totalStats, isTotal: true),
         ],
       ),
     );
@@ -198,47 +214,62 @@ class _FusionComparisonCardState extends State<FusionComparisonCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      margin: EdgeInsets.only(right: 16, bottom: MediaQuery.of(context).padding.bottom),
-      decoration: BoxDecoration(
-        color: Colors.grey[850],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return SingleChildScrollView(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Header de la fusión
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+          // Head and Body information
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Column(
+                children: [
+                  Text(
+                    'Head',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(                    
+                    widget.fusion.headPokemon.name,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                ],
               ),
-            ),
-            child: Text(
-              '${widget.fusion.headPokemon.name}/${widget.fusion.bodyPokemon.name}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              Column(
+                children: [
+                  Text(
+                    'Body',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(                    
+                    widget.fusion.bodyPokemon.name,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-            ),
+            ],
           ),
           
-          // Sprite de la fusión
+          const SizedBox(height: 16),
+          
+          // Fusion Sprite
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[800],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[600]!),
+            ),
             child: widget.fusion.primarySprite != null
                 ? SpriteFromSheet(
                     spriteData: widget.fusion.primarySprite!,
@@ -251,7 +282,7 @@ class _FusionComparisonCardState extends State<FusionComparisonCard> {
                     height: 120,
                     decoration: BoxDecoration(
                       color: Colors.purple[100],
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: Colors.purple[300]!),
                     ),
                     child: const Icon(
@@ -262,50 +293,47 @@ class _FusionComparisonCardState extends State<FusionComparisonCard> {
                   ),
           ),
           
-          // Tipos con chips estandarizados
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: widget.fusion.types.map((type) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 80, // Tamaño fijo para todos los chips
-                  height: 28, // Altura fija para todos los chips
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: PokemonTypeColors.getTypeColor(type),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        type,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+          const SizedBox(height: 16),
+          
+          // Types
+          Text(
+            widget.fusion.types.join(' / '),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          
+          // Autogenerated sprite indicator
+          if (widget.fusion.primarySprite?.isAutogenerated == true) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange[300]!),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome, size: 16, color: Colors.orange[700]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Autogenerated sprite',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange[700],
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
-                );
-              }).toList(),
+                ],
+              ),
             ),
-          ),
+          ],
           
           const SizedBox(height: 16),
           
-          // Estadísticas
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildStatsSection(),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
+          // Stats Section
+          _buildStatsSection(),
         ],
       ),
     );

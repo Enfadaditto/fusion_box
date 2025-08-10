@@ -149,20 +149,16 @@ class GenerateFusionGrid {
           }
 
           // Si no hay sprite del spritesheet, intentar obtener sprite específico
-          if (finalSprite == null) {
-            finalSprite = await getFusion.spriteRepository.getSpecificSprite(
+          finalSprite ??= await getFusion.spriteRepository.getSpecificSprite(
               fusion.headPokemon.pokedexNumber,
               fusion.bodyPokemon.pokedexNumber,
             );
-          }
 
           // Si no hay sprite personalizado, intentar autogenerado
-          if (finalSprite == null) {
-            finalSprite = await getFusion.spriteRepository.getAutogenSprite(
+          finalSprite ??= await getFusion.spriteRepository.getAutogenSprite(
               fusion.headPokemon.pokedexNumber,
               fusion.bodyPokemon.pokedexNumber,
             );
-          }
 
           // Calcular estadísticas de la fusión
           PokemonStats? fusionStats;
