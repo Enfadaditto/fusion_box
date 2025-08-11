@@ -49,7 +49,7 @@ class _FusionGridLoadingPageState extends State<FusionGridLoadingPage>
       _fadeController.forward();
 
       // Delay antes de iniciar la generación pesada (permite que la UI se establezca)
-      Future.delayed(const Duration(milliseconds: 300), () {
+      Future.delayed(const Duration(milliseconds: 50), () {
         if (mounted) {
           context.read<FusionGridBloc>().add(
             GenerateFusionGridEvent(widget.selectedPokemon),

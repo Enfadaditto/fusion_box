@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:fusion_box/core/utils/pokemon_name_normalizer.dart';
-import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart' show rootBundle;
 
 import '../../domain/entities/pokemon.dart';
 import '../../domain/entities/pokemon_stats.dart';
@@ -32,23 +32,55 @@ class FusionStatsCalculator {
     );
   }
 
-  Future<PokemonStats> getStatsFromPokemon(Pokemon pokemon) async {
-    const String baseUrl = 'https://pokeapi.co/api/v2/pokemon';
-    final normalizedName = PokemonNameNormalizer.normalizePokemonName(pokemon.name);
-    final response = await http.get(Uri.parse('$baseUrl/$normalizedName'));
+  Map<int, PokemonStats>? _statsByNumber;
+  Map<String, PokemonStats>? _statsByNormalizedName;
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return PokemonStats(
-        hp: data['stats'][0]['base_stat'],
-        attack: data['stats'][1]['base_stat'],
-        defense: data['stats'][2]['base_stat'],
-        specialAttack: data['stats'][3]['base_stat'],
-        specialDefense: data['stats'][4]['base_stat'],
-        speed: data['stats'][5]['base_stat'],
-      );
+  Future<void> _ensureLocalStatsLoaded() async {
+    if (_statsByNumber != null && _statsByNormalizedName != null) {
+      return;
     }
 
-    throw Exception('Failed to load stats for ${pokemon.name}');
+    final String jsonString = await rootBundle.loadString('assets/pokemon_full_list.json');
+    final List<dynamic> items = json.decode(jsonString) as List<dynamic>;
+
+    final Map<int, PokemonStats> byNumber = {};
+    final Map<String, PokemonStats> byNormalizedName = {};
+
+    for (final dynamic raw in items) {
+      if (raw is! Map<String, dynamic>) continue;
+      final int? number = raw['number'] as int?;
+      final String? name = raw['name'] as String?;
+      final Map<String, dynamic>? statsMap = raw['stats'] as Map<String, dynamic>?;
+      if (number == null || name == null || statsMap == null) continue;
+
+      final PokemonStats stats = PokemonStats(
+        hp: statsMap['hp'] as int,
+        attack: statsMap['attack'] as int,
+        defense: statsMap['defense'] as int,
+        specialAttack: statsMap['specialAttack'] as int,
+        specialDefense: statsMap['specialDefense'] as int,
+        speed: statsMap['speed'] as int,
+      );
+
+      byNumber[number] = stats;
+      final String normalizedName = PokemonNameNormalizer.normalizePokemonName(name);
+      byNormalizedName[normalizedName] = stats;
+    }
+
+    _statsByNumber = byNumber;
+    _statsByNormalizedName = byNormalizedName;
+  }
+
+  Future<PokemonStats> getStatsFromPokemon(Pokemon pokemon) async {
+    await _ensureLocalStatsLoaded();
+
+    final PokemonStats? byNumber = _statsByNumber![pokemon.pokedexNumber];
+    if (byNumber != null) return byNumber;
+
+    final String normalizedName = PokemonNameNormalizer.normalizePokemonName(pokemon.name);
+    final PokemonStats? byName = _statsByNormalizedName![normalizedName];
+    if (byName != null) return byName;
+
+    throw Exception('Base stats not found locally for ${pokemon.name} (#${pokemon.pokedexNumber}). Please generate assets/pokemon_full_list.json');
   }
 }
