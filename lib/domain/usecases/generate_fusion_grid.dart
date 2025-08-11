@@ -116,27 +116,32 @@ class GenerateFusionGrid {
 
     for (int i = 0; i < basicGrid.length; i++) {
       final row = <Fusion?>[];
+      // 1 / 0 para evitar null en el ajuste AxA de fusiones
+      final spritesheetPath = await getFusion.spriteRepository
+          .getSpritesheetPath(
+            i == 0
+                ? basicGrid[i][1]!.headPokemon.pokedexNumber
+                : basicGrid[i][0]!.headPokemon.pokedexNumber,
+          );
+
+      img.Image? image;
+      if (spritesheetPath != null) {
+        final spriteSheet = File(spritesheetPath);
+
+        if (await spriteSheet.exists()) {
+          final bytes = await spriteSheet.readAsBytes();
+          image = img.decodeImage(bytes);
+        }
+      }
 
       // Procesar todas las columnas de esta fila
       for (int j = 0; j < basicGrid[i].length; j++) {
         final fusion = basicGrid[i][j];
 
         if (fusion != null) {
-          // Intentar obtener el spritesheet del Pokémon cabeza
-          final spritesheetPath = await getFusion.spriteRepository
-              .getSpritesheetPath(fusion.headPokemon.pokedexNumber);
-
           SpriteData? finalSprite;
 
           if (spritesheetPath != null) {
-            final spriteSheet = File(spritesheetPath);
-
-            img.Image? image;
-            if (await spriteSheet.exists()) {
-              final bytes = await spriteSheet.readAsBytes();
-              image = img.decodeImage(bytes);
-            }
-
             if (image != null) {
               finalSprite = await getFusion.spriteRepository
                   .getSpecificSpriteFromSpritesheet(
@@ -150,15 +155,15 @@ class GenerateFusionGrid {
 
           // Si no hay sprite del spritesheet, intentar obtener sprite específico
           finalSprite ??= await getFusion.spriteRepository.getSpecificSprite(
-              fusion.headPokemon.pokedexNumber,
-              fusion.bodyPokemon.pokedexNumber,
-            );
+            fusion.headPokemon.pokedexNumber,
+            fusion.bodyPokemon.pokedexNumber,
+          );
 
           // Si no hay sprite personalizado, intentar autogenerado
           finalSprite ??= await getFusion.spriteRepository.getAutogenSprite(
-              fusion.headPokemon.pokedexNumber,
-              fusion.bodyPokemon.pokedexNumber,
-            );
+            fusion.headPokemon.pokedexNumber,
+            fusion.bodyPokemon.pokedexNumber,
+          );
 
           // Calcular estadísticas de la fusión
           PokemonStats? fusionStats;
@@ -168,7 +173,7 @@ class GenerateFusionGrid {
               fusion.headPokemon,
               fusion.bodyPokemon,
             );
-          } catch (_) { }
+          } catch (_) {}
 
           final fusionWithSprite = Fusion(
             headPokemon: fusion.headPokemon,
