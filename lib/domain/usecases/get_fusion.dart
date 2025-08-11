@@ -40,10 +40,7 @@ class GetFusion {
       try {
         final calculator = FusionStatsCalculator();
         fusionStats = await calculator.getStatsFromFusion(headPokemon, bodyPokemon);
-      } catch (e) {
-        // Si falla el cálculo de stats, continuar sin ellas
-        // TODO: Implementar logging apropiado
-      }
+      } catch (_) { }
 
       return Fusion(
         headPokemon: headPokemon,
@@ -53,7 +50,7 @@ class GetFusion {
         primarySprite: primarySprite,
         stats: fusionStats,
       );
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }

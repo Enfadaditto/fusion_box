@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_details.dart';
+import 'package:fusion_box/presentation/widgets/fusion/fusion_compare_cards.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
 
 enum ComparatorSortKey {
@@ -32,6 +33,7 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
   final List<String> _selectedPokemon = [];
   bool _showFilters = false;
   static const double _filterRowHeight = 40;
+  int _numLines = 2;
 
   // Sorting
   ComparatorSortKey _sortKey = ComparatorSortKey.none;
@@ -263,6 +265,32 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          // Lines selector
+          PopupMenuButton<int>(
+            tooltip: 'Lines per column',
+            icon: const Icon(Icons.view_comfy),
+            onSelected: (value) {
+              setState(() {
+                _numLines = value;
+              });
+            },
+            itemBuilder: (context) => [
+              for (final lines in [1, 2, 3])
+                PopupMenuItem<int>(
+                  value: lines,
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(lines == 1 ? '1 line' : '$lines lines')),
+                      if (lines == _numLines)
+                        const Icon(
+                          Icons.check,
+                          size: 18,
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           // Sort menu
           PopupMenuButton<ComparatorSortKey>(
             tooltip: 'Sort by stat',
@@ -709,26 +737,62 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
                           ],
                         ),
                       )
-                      : ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredFusions.length,
-                        itemBuilder: (context, index) {
-                          final fusion = _filteredFusions[index];
-                          return Container(
-                            key: ValueKey(fusion.fusionId),
-                            width: 350,
-                            margin: const EdgeInsets.only(right: 16),
+                      : Builder(
+                        builder: (context) {
+                          final screenWidth = MediaQuery.of(context).size.width;
+                          double tileWidth;
+                          switch (_numLines) {
+                            case 1:
+                              tileWidth = 300;
+                              break;
+                            case 2:
+                              tileWidth = screenWidth / 2;
+                              break;
+                            case 3:
+                              tileWidth = screenWidth / 3;
+                              break;
+                            default:
+                              tileWidth = 300;
+                          }
+
+                          return GridView.builder(
+                            scrollDirection: Axis.horizontal,
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[850],
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey[600]!),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: _numLines,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              mainAxisExtent: tileWidth,
                             ),
-                            child: FusionDetailsContent(
-                              key: ValueKey('details-${fusion.fusionId}'),
+                            itemCount: _filteredFusions.length,
+                            itemBuilder: (context, index) {
+                              final fusion = _filteredFusions[index];
+                          if (_numLines == 1) {
+                            return Container(
+                              key: ValueKey(fusion.fusionId),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[850],
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey[600]!),
+                              ),
+                              child: FusionDetailsContent(
+                                key: ValueKey('details-${fusion.fusionId}'),
+                                fusion: fusion,
+                              ),
+                            );
+                          } else if (_numLines == 2) {
+                            return FusionCompareCardMedium(
+                              key: ValueKey('medium-${fusion.fusionId}'),
                               fusion: fusion,
-                            ),
+                            );
+                          } else {
+                            return FusionCompareCardSmall(
+                              key: ValueKey('small-${fusion.fusionId}'),
+                              fusion: fusion,
+                            );
+                          }
+                            },
                           );
                         },
                       ),

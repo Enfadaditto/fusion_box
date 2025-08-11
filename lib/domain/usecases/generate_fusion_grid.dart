@@ -168,10 +168,7 @@ class GenerateFusionGrid {
               fusion.headPokemon,
               fusion.bodyPokemon,
             );
-          } catch (e) {
-            // Si falla el cálculo de stats, continuar sin ellas
-            // TODO: Implementar logging apropiado
-          }
+          } catch (_) { }
 
           final fusionWithSprite = Fusion(
             headPokemon: fusion.headPokemon,
