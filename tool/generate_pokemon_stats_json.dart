@@ -22,7 +22,7 @@ Future<void> main() async {
   for (final PokemonModel p in pokemonList) {
     processed += 1;
     final String normalized = PokemonNameNormalizer.normalizePokemonName(p.name);
-    stdout.writeln('[${processed}/${pokemonList.length}] Fetching $normalized...');
+    stdout.writeln('[$processed/${pokemonList.length}] Fetching $normalized...');
     final uri = Uri.parse('$baseUrl/$normalized');
 
     try {
