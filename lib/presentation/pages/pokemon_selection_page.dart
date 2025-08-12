@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/injection_container.dart';
@@ -749,8 +750,19 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                       .contains(pokemon);
 
                                   return ListTile(
-                                    leading: StreamBasedPokemonIconSmall(
-                                      pokemon: pokemon,
+                                    leading: StreamBuilder<bool>(
+                                      stream: SettingsNotificationService().simpleIconsStream,
+                                      initialData: SettingsNotificationService().currentValue,
+                                      builder: (context, snapshot) {
+                                        final useSimpleIcons = snapshot.data ?? true;
+                                        final shouldBob = !useSimpleIcons && isSelected;
+                                        return _Bobbing(
+                                          enabled: shouldBob,
+                                          child: StreamBasedPokemonIconSmall(
+                                            pokemon: pokemon,
+                                          ),
+                                        );
+                                      },
                                     ),
                                     title: Text(
                                       pokemon.name,
@@ -879,6 +891,76 @@ class _GameSetupInfoBanner extends StatefulWidget {
 
   @override
   State<_GameSetupInfoBanner> createState() => _GameSetupInfoBannerState();
+}
+
+class _Bobbing extends StatefulWidget {
+  final bool enabled;
+  final Widget child;
+
+  const _Bobbing({required this.enabled, required this.child});
+
+  @override
+  State<_Bobbing> createState() => _BobbingState();
+}
+
+class _BobbingState extends State<_Bobbing> {
+  bool _isUp = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.enabled) {
+      _start();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _Bobbing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled != widget.enabled) {
+      if (widget.enabled) {
+        _start();
+      } else {
+        _stop();
+      }
+    }
+  }
+
+  void _start() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _isUp = !_isUp;
+      });
+    });
+  }
+
+  void _stop() {
+    _timer?.cancel();
+    _timer = null;
+    if (_isUp) {
+      setState(() {
+        _isUp = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    return Transform.translate(
+      offset: Offset(0, _isUp ? -3.0 : 0.0),
+      child: widget.child,
+    );
+  }
 }
 
 class _GameSetupInfoBannerState extends State<_GameSetupInfoBanner> {
