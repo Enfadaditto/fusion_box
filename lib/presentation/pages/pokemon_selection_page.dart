@@ -30,6 +30,7 @@ class PokemonSelectionPage extends StatefulWidget {
 class _PokemonSelectionPageState extends State<PokemonSelectionPage>
     with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _selectedScrollController = ScrollController();
   bool _showBackToTop = false;
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
@@ -65,6 +66,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _selectedScrollController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -488,48 +490,48 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                       ),
                                       const SizedBox(height: 12),
                                       if (state.selectedPokemon.isEmpty)
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
+                                        SizedBox(
+                                          height: 120,
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
                                               color: Colors.grey.withValues(
-                                                alpha: 0.2,
+                                                alpha: 0.1,
                                               ),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: Colors.grey.withValues(alpha: 0.2),
+                                              ),
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.touch_app,
+                                                  color: Colors.grey[600],
+                                                  size: 32,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'No Pokemon selected',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Tap Pokemon below to add them',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[500],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          child: Column(
-                                            children: [
-                                              Icon(
-                                                Icons.touch_app,
-                                                color: Colors.grey[600],
-                                                size: 32,
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                'No Pokemon selected',
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Tap Pokemon below to add them',
-                                                style: TextStyle(
-                                                  color: Colors.grey[500],
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                           ),
-                                         )
+                                        )
                                       else
                                         StreamBuilder<bool>(
                                           stream: SettingsNotificationService().simpleIconsStream,
@@ -537,53 +539,66 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                           builder: (context, snapshot) {
                                             final useSimpleIcons = snapshot.data ?? true;
 
-                                            return Wrap(
-                                              spacing: 8,
-                                              runSpacing: useSimpleIcons ? 0 : 8,
-                                              children: state.selectedPokemon.map((pokemon) {
-                                                if (useSimpleIcons) {
-                                                  return Chip(
-                                                    avatar: StreamBasedPokemonIcon(
-                                                      pokemon: pokemon,
-                                                      size: 24,
-                                                    ),
-                                                    label: Text(
-                                                      '${pokemon.pokedexNumber}. ${pokemon.name}',
-                                                      style: const TextStyle(fontSize: 12),
-                                                    ),
-                                                    onDeleted: () {
-                                                      context.read<PokemonListBloc>().add(
-                                                            RemoveSelectedPokemon(pokemon),
-                                                          );
-                                                    },
-                                                    deleteIcon: const Icon(Icons.close, size: 16),
-                                                    backgroundColor: Theme.of(context)
-                                                        .colorScheme
-                                                        .surfaceContainerHighest,
-                                                  );
-                                                } else {
-                                                  return Chip(
-                                                    avatar: StreamBasedPokemonIcon(
-                                                      pokemon: pokemon,
-                                                      size: 24,
-                                                    ),
-                                                    label: const SizedBox.shrink(),
-                                                    labelPadding: EdgeInsets.zero,
-                                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                    visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-                                                    padding: EdgeInsets.zero,
-                                                    onDeleted: () {
-                                                      context.read<PokemonListBloc>().add(
-                                                            RemoveSelectedPokemon(pokemon),
-                                                          );
-                                                    },
-                                                    deleteIcon: const Icon(Icons.close, size: 16),
-                                                    backgroundColor: Theme.of(context)
-                                                        .colorScheme
-                                                        .surfaceContainerHighest,
-                                                  );
-                                                }
-                                              }).toList(),
+                                            return SizedBox(
+                                              height: 120,
+                                              child: Scrollbar(
+                                                controller: _selectedScrollController,
+                                                thumbVisibility: true,
+                                                thickness: 4,
+                                                radius: const Radius.circular(12),
+                                                child: SingleChildScrollView(
+                                                  controller: _selectedScrollController,
+                                                  physics: const BouncingScrollPhysics(),
+                                                  child: Wrap(
+                                                    spacing: 8,
+                                                    runSpacing: useSimpleIcons ? 0 : 8,
+                                                    children: state.selectedPokemon.map((pokemon) {
+                                                      if (useSimpleIcons) {
+                                                        return Chip(
+                                                          avatar: StreamBasedPokemonIcon(
+                                                            pokemon: pokemon,
+                                                            size: 24,
+                                                          ),
+                                                          label: Text(
+                                                            '${pokemon.pokedexNumber}. ${pokemon.name}',
+                                                            style: const TextStyle(fontSize: 12),
+                                                          ),
+                                                          onDeleted: () {
+                                                            context.read<PokemonListBloc>().add(
+                                                                  RemoveSelectedPokemon(pokemon),
+                                                                );
+                                                          },
+                                                          deleteIcon: const Icon(Icons.close, size: 16),
+                                                          backgroundColor: Theme.of(context)
+                                                              .colorScheme
+                                                              .surfaceContainerHighest,
+                                                        );
+                                                      } else {
+                                                        return Chip(
+                                                          avatar: StreamBasedPokemonIcon(
+                                                            pokemon: pokemon,
+                                                            size: 24,
+                                                          ),
+                                                          label: const SizedBox.shrink(),
+                                                          labelPadding: EdgeInsets.zero,
+                                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                                                          padding: EdgeInsets.zero,
+                                                          onDeleted: () {
+                                                            context.read<PokemonListBloc>().add(
+                                                                  RemoveSelectedPokemon(pokemon),
+                                                                );
+                                                          },
+                                                          deleteIcon: const Icon(Icons.close, size: 16),
+                                                          backgroundColor: Theme.of(context)
+                                                              .colorScheme
+                                                              .surfaceContainerHighest,
+                                                        );
+                                                      }
+                                                    }).toList(),
+                                                  ),
+                                                ),
+                                              ),
                                             );
                                           },
                                         ),
@@ -609,7 +624,50 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                           ],
                                         ),
                                       ],
-                                      // CTA moved to sticky bottom bar
+                                      if (state.selectedPokemon.length >= 2) ...[
+                                        const SizedBox(height: 12),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 48,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              final fusionGridBloc = sl<FusionGridBloc>();
+                                              final settingsBloc = context.read<SettingsBloc>();
+
+                                              Navigator.of(context).push(
+                                                PageRouteBuilder(
+                                                  pageBuilder: (context, animation, secondaryAnimation) => MultiBlocProvider(
+                                                    providers: [
+                                                      BlocProvider.value(value: fusionGridBloc),
+                                                      BlocProvider.value(value: settingsBloc),
+                                                    ],
+                                                    child: FusionGridLoadingPage(
+                                                      selectedPokemon: state.selectedPokemon,
+                                                    ),
+                                                  ),
+                                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                                    return FadeTransition(
+                                                      opacity: animation,
+                                                      child: ScaleTransition(
+                                                        scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                                                          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                                                        ),
+                                                        child: child,
+                                                      ),
+                                                    );
+                                                  },
+                                                  transitionDuration: const Duration(milliseconds: 400),
+                                                ),
+                                              );
+                                            },
+                                            icon: const Icon(Icons.grid_view),
+                                            label: const Text('Generate Fusion Grid'),
+                                            style: ElevatedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -808,60 +866,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
               return const Center(child: Text('Unknown state'));
             },
           ),
-          bottomNavigationBar: BlocBuilder<PokemonListBloc, PokemonListState>(
-            builder: (context, state) {
-              if (state is! PokemonListLoaded || state.selectedPokemon.length < 2) {
-                return const SizedBox.shrink();
-              }
-
-              return SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        final fusionGridBloc = sl<FusionGridBloc>();
-                        final settingsBloc = context.read<SettingsBloc>();
-
-                        Navigator.of(context).push(
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) => MultiBlocProvider(
-                              providers: [
-                                BlocProvider.value(value: fusionGridBloc),
-                                BlocProvider.value(value: settingsBloc),
-                              ],
-                              child: FusionGridLoadingPage(
-                                selectedPokemon: state.selectedPokemon,
-                              ),
-                            ),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: ScaleTransition(
-                                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-                                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                                  ),
-                                  child: child,
-                                ),
-                              );
-                            },
-                            transitionDuration: const Duration(milliseconds: 400),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.grid_view),
-                      label: const Text('Generate Fusion Grid'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
+          bottomNavigationBar: const SizedBox.shrink(),
         ),
       ),
     );
