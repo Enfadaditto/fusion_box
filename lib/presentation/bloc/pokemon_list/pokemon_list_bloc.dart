@@ -14,6 +14,9 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     on<TogglePokemonSelection>(_onTogglePokemonSelection);
     on<ClearSelectedPokemon>(_onClearSelectedPokemon);
     on<RemoveSelectedPokemon>(_onRemoveSelectedPokemon);
+    on<SortSelectedByName>(_onSortSelectedByName);
+    on<SortSelectedByDex>(_onSortSelectedByDex);
+    on<ReorderSelectedPokemon>(_onReorderSelectedPokemon);
   }
 
   Future<void> _onLoadPokemonList(
@@ -96,4 +99,45 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
       emit(currentState.copyWith(selectedPokemon: selectedPokemon));
     }
   }
+
+  void _onSortSelectedByName(
+    SortSelectedByName event,
+    Emitter<PokemonListState> emit,
+  ) {
+    if (state is PokemonListLoaded) {
+      final currentState = state as PokemonListLoaded;
+      final selected = List<Pokemon>.from(currentState.selectedPokemon)
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      emit(currentState.copyWith(selectedPokemon: selected));
+    }
+  }
+
+  void _onSortSelectedByDex(
+    SortSelectedByDex event,
+    Emitter<PokemonListState> emit,
+  ) {
+    if (state is PokemonListLoaded) {
+      final currentState = state as PokemonListLoaded;
+      final selected = List<Pokemon>.from(currentState.selectedPokemon)
+        ..sort((a, b) => a.pokedexNumber.compareTo(b.pokedexNumber));
+      emit(currentState.copyWith(selectedPokemon: selected));
+    }
+  }
+
+  void _onReorderSelectedPokemon(
+    ReorderSelectedPokemon event,
+    Emitter<PokemonListState> emit,
+  ) {
+    if (state is PokemonListLoaded) {
+      final currentState = state as PokemonListLoaded;
+      final selected = List<Pokemon>.from(currentState.selectedPokemon);
+      int newIndex = event.newIndex;
+      if (event.newIndex > event.oldIndex) newIndex -= 1;
+      final moved = selected.removeAt(event.oldIndex);
+      selected.insert(newIndex, moved);
+      emit(currentState.copyWith(selectedPokemon: selected));
+    }
+  }
+
+  // bulk visible selection handlers removed
 }

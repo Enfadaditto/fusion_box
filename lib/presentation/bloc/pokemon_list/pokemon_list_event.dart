@@ -38,3 +38,17 @@ class RemoveSelectedPokemon extends PokemonListEvent {
   @override
   List<Object> get props => [pokemon];
 }
+
+class SortSelectedByName extends PokemonListEvent {}
+
+class SortSelectedByDex extends PokemonListEvent {}
+
+class ReorderSelectedPokemon extends PokemonListEvent {
+  final int oldIndex;
+  final int newIndex;
+
+  const ReorderSelectedPokemon(this.oldIndex, this.newIndex);
+
+  @override
+  List<Object> get props => [oldIndex, newIndex];
+}

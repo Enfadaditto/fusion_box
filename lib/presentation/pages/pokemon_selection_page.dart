@@ -338,28 +338,152 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                             ),
                                           ),
                                           const Spacer(),
-                                          if (state.selectedPokemon.isNotEmpty)
-                                            TextButton.icon(
-                                              onPressed: () {
-                                                context
-                                                    .read<PokemonListBloc>()
-                                                    .add(
-                                                      ClearSelectedPokemon(),
-                                                    );
-                                              },
-                                              icon: const Icon(
-                                                Icons.clear_all,
-                                                size: 16,
-                                              ),
-                                              label: const Text('Clear All'),
-                                              style: TextButton.styleFrom(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
+                                          if (state.selectedPokemon.isNotEmpty) ...[
+                                            PopupMenuButton<String>(
+                                              tooltip: 'Actions',
+                                              itemBuilder: (context) => [
+                                                const PopupMenuItem(
+                                                  value: 'sort_name',
+                                                  child: Text('Sort A-Z'),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: 'sort_dex',
+                                                  child: Text('Sort #Dex'),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: 'reorder',
+                                                  child: Text('Reorder...'),
+                                                ),
+                                                const PopupMenuDivider(),
+                                                const PopupMenuItem(
+                                                  value: 'clear',
+                                                  child: Text('Clear All'),
+                                                ),
+                                              ],
+                                              onSelected: (value) async {
+                                                if (value == 'sort_name') {
+                                                  context.read<PokemonListBloc>().add(SortSelectedByName());
+                                                } else if (value == 'sort_dex') {
+                                                  context.read<PokemonListBloc>().add(SortSelectedByDex());
+                                                } else if (value == 'reorder') {
+                                                  // Open bottom sheet with ReorderableListView
+                                                  // ignore: use_build_context_synchronously
+                                                  showModalBottomSheet(
+                                                    context: context,
+                                                    isScrollControlled: true,
+                                                    shape: const RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                                                     ),
+                                                    builder: (ctx) {
+                                                      final pokemonListBloc = context.read<PokemonListBloc>();
+                                                      return BlocProvider.value(
+                                                        value: pokemonListBloc,
+                                                        child: DraggableScrollableSheet(
+                                                          expand: false,
+                                                          initialChildSize: 0.6,
+                                                          minChildSize: 0.4,
+                                                          maxChildSize: 0.9,
+                                                          builder: (sheetContext, scrollController) {
+                                                            return BlocBuilder<PokemonListBloc, PokemonListState>(
+                                                              builder: (builderContext, sheetState) {
+                                                                if (sheetState is! PokemonListLoaded) {
+                                                                  return const SizedBox.shrink();
+                                                                }
+                                                                final current = sheetState.selectedPokemon;
+                                                                return Column(
+                                                                  children: [
+                                                                    const SizedBox(height: 8),
+                                                                    Container(
+                                                                      height: 4,
+                                                                      width: 36,
+                                                                      decoration: BoxDecoration(
+                                                                        color: Colors.grey.withValues(alpha: 0.4),
+                                                                        borderRadius: BorderRadius.circular(2),
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(height: 12),
+                                                                    const Text('Reorder selected Pokemon', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                                    const SizedBox(height: 8),
+                                                                    Expanded(
+                                                                      child: PrimaryScrollController(
+                                                                        controller: scrollController,
+                                                                        child: ReorderableListView.builder(
+                                                                          buildDefaultDragHandles: false,
+                                                                          physics: const BouncingScrollPhysics(),
+                                                                          itemCount: current.length,
+                                                                          onReorder: (oldIndex, newIndex) {
+                                                                            pokemonListBloc.add(ReorderSelectedPokemon(oldIndex, newIndex));
+                                                                          },
+                                                                          itemBuilder: (context, index) {
+                                                                            final p = current[index];
+                                                                            return ListTile(
+                                                                              key: ValueKey('reorder_${p.pokedexNumber}_${p.name}'),
+                                                                              leading: StreamBasedPokemonIcon(pokemon: p, size: 28),
+                                                                              title: Text('${p.pokedexNumber}. ${p.name}'),
+                                                                              trailing: ReorderableDragStartListener(
+                                                                                index: index,
+                                                                                child: const Icon(Icons.drag_handle),
+                                                                              ),
+                                                                            );
+                                                                          },
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    SafeArea(
+                                                                      top: false,
+                                                                      child: Padding(
+                                                                        padding: const EdgeInsets.all(12),
+                                                                        child: SizedBox(
+                                                                          width: double.infinity,
+                                                                          child: OutlinedButton(
+                                                                            onPressed: () => Navigator.of(sheetContext).pop(),
+                                                                            child: const Text('Done'),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            );
+                                                          },
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                } else if (value == 'clear') {
+                                                  final confirm = await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (ctx) => AlertDialog(
+                                                      title: const Text('Clear all selected?'),
+                                                      content: const Text('This will remove all selected Pokemon.'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () => Navigator.of(ctx).pop(false),
+                                                          child: const Text('Cancel'),
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () => Navigator.of(ctx).pop(true),
+                                                          child: const Text('Clear All'),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                  if (confirm == true) {
+                                                    // ignore: use_build_context_synchronously
+                                                    context.read<PokemonListBloc>().add(ClearSelectedPokemon());
+                                                  }
+                                                }
+                                              },
+                                              child: Row(
+                                                children: const [
+                                                  Icon(Icons.tune, size: 18),
+                                                  SizedBox(width: 4),
+                                                  Text('Actions'),
+                                                ],
                                               ),
                                             ),
+                                          ],
                                         ],
                                       ),
                                       const SizedBox(height: 12),
@@ -404,8 +528,8 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                 ),
                                               ),
                                             ],
-                                          ),
-                                        )
+                                           ),
+                                         )
                                       else
                                         StreamBuilder<bool>(
                                           stream: SettingsNotificationService().simpleIconsStream,
@@ -418,7 +542,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                               runSpacing: useSimpleIcons ? 0 : 8,
                                               children: state.selectedPokemon.map((pokemon) {
                                                 if (useSimpleIcons) {
-                                                  // Simple icons: (icon) num. nombre X
                                                   return Chip(
                                                     avatar: StreamBasedPokemonIcon(
                                                       pokemon: pokemon,
@@ -439,7 +562,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                         .surfaceContainerHighest,
                                                   );
                                                 } else {
-                                                  // Live icons: (icon) X compacto
                                                   return Chip(
                                                     avatar: StreamBasedPokemonIcon(
                                                       pokemon: pokemon,
@@ -465,81 +587,29 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                             );
                                           },
                                         ),
-                                      if (state.selectedPokemon.length >=
-                                          2) ...[
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton.icon(
-                                            onPressed: () {
-                                              // Crear nuevo FusionGridBloc y navegar con transición fluida
-                                              final fusionGridBloc =
-                                                  sl<FusionGridBloc>();
-                                              final settingsBloc = context.read<SettingsBloc>();
-
-                                              Navigator.of(context).push(
-                                                PageRouteBuilder(
-                                                  pageBuilder:
-                                                      (
-                                                        context,
-                                                        animation,
-                                                        secondaryAnimation,
-                                                      ) => MultiBlocProvider(
-                                                        providers: [
-                                                          BlocProvider.value(value: fusionGridBloc),
-                                                          BlocProvider.value(value: settingsBloc),
-                                                        ],
-                                                        child: FusionGridLoadingPage(
-                                                          selectedPokemon:
-                                                              state
-                                                                  .selectedPokemon,
-                                                        ),
-                                                      ),
-                                                  transitionsBuilder: (
-                                                    context,
-                                                    animation,
-                                                    secondaryAnimation,
-                                                    child,
-                                                  ) {
-                                                    // Transición de fade con scale sutil
-                                                    return FadeTransition(
-                                                      opacity: animation,
-                                                      child: ScaleTransition(
-                                                        scale: Tween<double>(
-                                                          begin: 0.95,
-                                                          end: 1.0,
-                                                        ).animate(
-                                                          CurvedAnimation(
-                                                            parent: animation,
-                                                            curve:
-                                                                Curves
-                                                                    .easeOutCubic,
-                                                          ),
-                                                        ),
-                                                        child: child,
-                                                      ),
-                                                    );
-                                                  },
-                                                  transitionDuration:
-                                                      const Duration(
-                                                        milliseconds: 400,
-                                                      ),
+                                      if (state.selectedPokemon.length >= 10) ...[
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.info_outline,
+                                              size: 16,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                'This may take a while (~${state.selectedPokemon.length * (state.selectedPokemon.length - 1)} combinations)',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                                 ),
-                                              );
-                                            },
-                                            icon: const Icon(Icons.grid_view),
-                                            label: const Text(
-                                              'Generate Fusion Grid',
+                                              ),
                                             ),
-                                            style: ElevatedButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                            ),
-                                          ),
+                                          ],
                                         ),
                                       ],
+                                      // CTA moved to sticky bottom bar
                                     ],
                                   ),
                                 ),
@@ -736,6 +806,60 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
               }
 
               return const Center(child: Text('Unknown state'));
+            },
+          ),
+          bottomNavigationBar: BlocBuilder<PokemonListBloc, PokemonListState>(
+            builder: (context, state) {
+              if (state is! PokemonListLoaded || state.selectedPokemon.length < 2) {
+                return const SizedBox.shrink();
+              }
+
+              return SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final fusionGridBloc = sl<FusionGridBloc>();
+                        final settingsBloc = context.read<SettingsBloc>();
+
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => MultiBlocProvider(
+                              providers: [
+                                BlocProvider.value(value: fusionGridBloc),
+                                BlocProvider.value(value: settingsBloc),
+                              ],
+                              child: FusionGridLoadingPage(
+                                selectedPokemon: state.selectedPokemon,
+                              ),
+                            ),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: ScaleTransition(
+                                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                                    CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                                  ),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            transitionDuration: const Duration(milliseconds: 400),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.grid_view),
+                      label: const Text('Generate Fusion Grid'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              );
             },
           ),
         ),
