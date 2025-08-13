@@ -20,6 +20,9 @@ import 'package:fusion_box/presentation/widgets/common/debug_icon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_icon.dart';
 import 'package:fusion_box/core/services/settings_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fusion_box/core/services/saved_boxes_service.dart';
+import 'package:fusion_box/presentation/pages/saved_boxes_page.dart';
+import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
   const PokemonSelectionPage({super.key});
@@ -37,6 +40,8 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _opacityAnimation;
   final TextEditingController _searchController = TextEditingController();
+  // Ability filter state handled by _AbilityFilter widget
+  bool _showSearchFilters = false;
 
   @override
   void initState() {
@@ -61,6 +66,22 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
     _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+  }
+
+  Future<bool> _handleSaveBox(BuildContext context, String name, List<int> ids) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid name')),
+      );
+      return false;
+    }
+    await SavedBoxesService.saveBox(trimmed, ids);
+    if (!mounted) return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Saved "$trimmed"')), 
+    );
+    return true;
   }
 
   @override
@@ -157,6 +178,23 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
             actions: [
               //TODO: REMOVE FOR RELEASE
               const DebugIcon(),
+              Builder(
+                builder: (innerCtx) => IconButton(
+                  tooltip: 'Saved Boxes',
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  onPressed: () {
+                    final pokemonListBloc = innerCtx.read<PokemonListBloc>();
+                    Navigator.of(innerCtx).push(
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider.value(
+                          value: pokemonListBloc,
+                          child: const SavedBoxesPage(),
+          ),
+                      ),
+                    );
+                  },
+                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: () {
@@ -169,7 +207,10 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
               ),
             ],
           ),
-          body: BlocBuilder<PokemonListBloc, PokemonListState>(
+          body: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: BlocBuilder<PokemonListBloc, PokemonListState>(
             builder: (context, state) {
               if (state is PokemonListLoading) {
                 return const Center(child: CircularProgressIndicator());
@@ -224,36 +265,82 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                               ),
                             ],
                           ),
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Search Pokemon...',
-                              prefixIcon: Icon(Icons.search),
-                              suffixIcon:
-                                  _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                        icon: const Icon(Icons.clear),
+                          child: Column(
+                            children: [
+                              TextField(
+                                controller: _searchController,
+                                decoration: InputDecoration(
+                                  hintText: 'Search by name or #Dex',
+                                  prefixIcon: const Icon(Icons.search),
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_searchController.text.isNotEmpty)
+                                        IconButton(
+                                          tooltip: 'Clear',
+                                          icon: const Icon(Icons.clear),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            context.read<PokemonListBloc>().add(
+                                                  const SearchPokemon(''),
+                                                );
+                                            setState(() {});
+                                          },
+                                        ),
+                                      IconButton(
+                                        tooltip: _showSearchFilters ? 'Hide filters' : 'Show filters',
+                                        icon: AnimatedRotation(
+                                          duration: const Duration(milliseconds: 200),
+                                          turns: _showSearchFilters ? 0.25 : 0.0, // right (>) to down (v)
+                                          child: const Icon(Icons.chevron_right),
+                                        ),
                                         onPressed: () {
-                                          _searchController.clear();
-                                          context.read<PokemonListBloc>().add(
-                                            SearchPokemon(''),
-                                          );
+                                          setState(() {
+                                            _showSearchFilters = !_showSearchFilters;
+                                          });
                                         },
-                                      )
-                                      : null,
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                                      ),
+                                    ],
+                                  ),
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onChanged: (query) {
+                                  context.read<PokemonListBloc>().add(
+                                        SearchPokemon(query),
+                                      );
+                                  setState(() {}); // refresh clear button visibility
+                                },
                               ),
-                            ),
-                            onChanged: (query) {
-                              context.read<PokemonListBloc>().add(
-                                SearchPokemon(query),
-                              );
-                            },
-                          ),
-                        ),
+                              AnimatedCrossFade(
+                                firstChild: const SizedBox.shrink(),
+                                secondChild: Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      _AbilityFilter(
+                                        onSelect: (ability) {
+                                          context.read<PokemonListBloc>().add(
+                                                SearchPokemon(ability ?? ''),
+                                              );
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _MovesFilter(),
+                                    ],
+                                  ),
+                                ),
+                                crossFadeState: _showSearchFilters
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
+                                duration: const Duration(milliseconds: 250),
+                              ),
+                            ],
+                          ),                        ),
 
                         Expanded(
                           child: CustomScrollView(
@@ -359,6 +446,11 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                 ),
                                                 const PopupMenuDivider(),
                                                 const PopupMenuItem(
+                                                  value: 'save',
+                                                  child: Text('Save...'),
+                                                ),
+                                                const PopupMenuDivider(),
+                                                const PopupMenuItem(
                                                   value: 'clear',
                                                   child: Text('Clear All'),
                                                 ),
@@ -451,6 +543,69 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                             );
                                                           },
                                                         ),
+                                                      );
+                                                    },
+                                                  );
+                                                } else if (value == 'save') {
+                                                  final nameController = TextEditingController();
+                                                  String? errorText;
+                                                  bool submitting = false;
+                                                  await showDialog<void>(
+                                                    context: context,
+                                                    builder: (ctx) {
+                                                      return StatefulBuilder(
+                                                        builder: (ctx, setLocalState) {
+                                                          return AlertDialog(
+                                                            title: const Text('Save selection as box'),
+                                                            content: Column(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                TextField(
+                                                                  controller: nameController,
+                                                                  autofocus: true,
+                                                                  textInputAction: TextInputAction.done,
+                                                                  decoration: InputDecoration(
+                                                                    labelText: 'Box name',
+                                                                    errorText: errorText,
+                                                                  ),
+                                                                  onSubmitted: (_) async {
+                                                                    // Trigger save on Enter
+                                                                    if (!submitting) {
+                                                                      setLocalState(() => submitting = true);
+                                                                      final ok = await _handleSaveBox(context, nameController.text, state.selectedPokemon.map((p) => p.pokedexNumber).toList());
+                                                                      if (ok && mounted) Navigator.of(ctx).pop();
+                                                                      if (mounted) setLocalState(() => submitting = false);
+                                                                    }
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () => Navigator.of(ctx).pop(),
+                                                                child: const Text('Cancel'),
+                                                              ),
+                                                              ElevatedButton(
+                                                                onPressed: submitting
+                                                                    ? null
+                                                                    : () async {
+                                                                        setLocalState(() => submitting = true);
+                                                                        // Validate name
+                                                                        final name = nameController.text.trim();
+                                                                        if (name.isEmpty) {
+                                                                          setLocalState(() => errorText = 'Please enter a name');
+                                                                          submitting = false;
+                                                                          return;
+                                                                        }
+                                                                        final ok = await _handleSaveBox(context, name, state.selectedPokemon.map((p) => p.pokedexNumber).toList());
+                                                                        if (ok && mounted) Navigator.of(ctx).pop();
+                                                                        if (mounted) setLocalState(() => submitting = false);
+                                                                      },
+                                                                child: const Text('Save'),
+                                                              ),
+                                                            ],
+                                                          );
+                                                        },
                                                       );
                                                     },
                                                   );
@@ -878,6 +1033,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
               return const Center(child: Text('Unknown state'));
             },
           ),
+          ),
           bottomNavigationBar: const SizedBox.shrink(),
         ),
       ),
@@ -891,6 +1047,294 @@ class _GameSetupInfoBanner extends StatefulWidget {
 
   @override
   State<_GameSetupInfoBanner> createState() => _GameSetupInfoBannerState();
+}
+
+class _AbilityFilter extends StatefulWidget {
+  final void Function(String? ability) onSelect;
+  const _AbilityFilter({required this.onSelect});
+
+  @override
+  State<_AbilityFilter> createState() => _AbilityFilterState();
+}
+
+class _MovesFilter extends StatefulWidget {
+  @override
+  State<_MovesFilter> createState() => _MovesFilterState();
+}
+
+class _MovesFilterState extends State<_MovesFilter> {
+  List<String> _allMoves = const [];
+  final List<String> _selected = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final moves = await PokemonEnrichmentLoader().getAllMoves();
+      if (!mounted) return;
+      setState(() {
+        _allMoves = moves;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _allMoves = const [];
+        _loading = false;
+      });
+    }
+  }
+
+  void _apply() {
+    context.read<PokemonListBloc>().add(UpdateMovesFilter(List<String>.from(_selected)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading || _allMoves.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            SizedBox(
+              width: 400,
+              child: Autocomplete<String>(
+                optionsBuilder: (TextEditingValue tev) {
+                  final q = tev.text.trim().toLowerCase();
+                  if (q.isEmpty) return const Iterable<String>.empty();
+                  return _allMoves.where((m) => m.toLowerCase().contains(q)).take(30);
+                },
+                displayStringForOption: (opt) => opt,
+                onSelected: (value) {
+                  if (_selected.contains(value)) return;
+                  if (_selected.length >= 4) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Máximo 4 movimientos')),
+                    );
+                    return;
+                  }
+                  setState(() {
+                    _selected.add(value);
+                  });
+                  _apply();
+                },
+                fieldViewBuilder: (context, controller, focusNode, _) {
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Filtrar por movimientos (hasta 4)',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (controller.text.isNotEmpty)
+                            IconButton(
+                              tooltip: 'Limpiar',
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                controller.clear();
+                                focusNode.requestFocus();
+                                setState(() {});
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                    onChanged: (_) {
+                      // refresh clear button visibility
+                      setState(() {});
+                    },
+                    onSubmitted: (_) {
+                      // rely on onSelected
+                    },
+                  );
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  final list = options.toList(growable: false);
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(8),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 280, minWidth: 320),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: list.length,
+                          itemBuilder: (context, index) {
+                            final move = list[index];
+                            final already = _selected.contains(move);
+                            return ListTile(
+                              dense: true,
+                              title: Text(move),
+                              trailing: already ? const Icon(Icons.check, color: Colors.green) : null,
+                              onTap: () => onSelected(move),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (_selected.isNotEmpty)
+              TextButton.icon(
+                onPressed: () {
+                  setState(() => _selected.clear());
+                  _apply();
+                },
+                icon: const Icon(Icons.clear_all),
+                label: const Text('Limpiar movimientos'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _selected
+              .map(
+                (m) => Chip(
+                  label: Text(m),
+                  onDeleted: () {
+                    setState(() => _selected.remove(m));
+                    _apply();
+                  },
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _AbilityFilterState extends State<_AbilityFilter> {
+  List<String> _abilities = const [];
+  String? _selected;
+  bool _loading = true;
+  // Controller is managed by the autocomplete builder; no need to keep a field.
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final abilities = await PokemonEnrichmentLoader().getAllAbilities();
+      if (!mounted) return;
+      setState(() {
+        _abilities = abilities;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _abilities = const [];
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading || _abilities.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        final q = textEditingValue.text.trim().toLowerCase();
+        if (q.isEmpty) {
+          return const Iterable<String>.empty();
+        }
+        return _abilities.where((a) => a.toLowerCase().contains(q)).take(30);
+      },
+      displayStringForOption: (opt) => opt,
+      onSelected: (value) {
+        setState(() {
+          _selected = value;
+        });
+        widget.onSelect(value);
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        if (_selected != null && controller.text != _selected) {
+          controller.text = _selected!;
+        }
+        return TextField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: InputDecoration(
+            hintText: 'Filter by ability',
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if ((controller.text.isNotEmpty) || _selected != null)
+                  IconButton(
+                    tooltip: 'Clear ability filter',
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() {
+                        _selected = null;
+                      });
+                      controller.clear();
+                      widget.onSelect(null);
+                      focusNode.requestFocus();
+                    },
+                  ),
+              ],
+            ),
+          ),
+          onChanged: (value) {
+            if (_selected != null) {
+              setState(() => _selected = null);
+            }
+            // Do not call onSelect here; wait for onSelected or clear
+          },
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final list = options.toList(growable: false);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300, minWidth: 280),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: list.length,
+                itemBuilder: (context, index) {
+                  final ability = list[index];
+                  return ListTile(
+                    dense: true,
+                    title: Text(ability),
+                    onTap: () => onSelected(ability),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _Bobbing extends StatefulWidget {

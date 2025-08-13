@@ -52,3 +52,12 @@ class ReorderSelectedPokemon extends PokemonListEvent {
   @override
   List<Object> get props => [oldIndex, newIndex];
 }
+
+class UpdateMovesFilter extends PokemonListEvent {
+  final List<String> moves;
+
+  const UpdateMovesFilter(this.moves);
+
+  @override
+  List<Object> get props => [moves];
+}

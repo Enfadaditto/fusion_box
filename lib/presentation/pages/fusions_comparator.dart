@@ -3,6 +3,7 @@ import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_details.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_compare_cards.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
+import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 
 enum ComparatorSortKey {
   none,
@@ -31,9 +32,13 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
   late final List<Fusion> _baseOrder;
   final List<String> _selectedTypes = [];
   final List<String> _selectedPokemon = [];
+  String? _selectedAbility;
   bool _showFilters = false;
   static const double _filterRowHeight = 40;
   int _numLines = 2;
+  List<String> _allAbilities = const [];
+  final List<String> _selectedMoves = [];
+  List<String> _allMoves = const [];
 
   // Sorting
   ComparatorSortKey _sortKey = ComparatorSortKey.none;
@@ -44,6 +49,19 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
     super.initState();
     _baseOrder = List<Fusion>.from(widget.selectedFusions);
     _filteredFusions = List<Fusion>.from(widget.selectedFusions);
+    // Load abilities catalog
+    PokemonEnrichmentLoader().getAllAbilities().then((abilities) {
+      if (!mounted) return;
+      setState(() {
+        _allAbilities = abilities;
+      });
+    });
+    PokemonEnrichmentLoader().getAllMoves().then((moves) {
+      if (!mounted) return;
+      setState(() {
+        _allMoves = moves;
+      });
+    });
   }
 
   @override
@@ -51,39 +69,69 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
     super.dispose();
   }
 
-  void _applyFilters() {
+  Future<void> _applyFilters() async {
+    // Reiniciar desde el orden base antes de filtrar
+    final starting = List<Fusion>.from(_baseOrder);
+
+    // First, apply Pokemon and Types synchronously
+    List<Fusion> pre = starting.where((fusion) {
+      if (_selectedPokemon.isNotEmpty) {
+        final headName = fusion.headPokemon.name;
+        final bodyName = fusion.bodyPokemon.name;
+        final fusionPokemon = {headName, bodyName};
+        final hasAllSelectedPokemon = _selectedPokemon.every(
+          (pokemon) => fusionPokemon.contains(pokemon),
+        );
+        if (!hasAllSelectedPokemon) return false;
+      }
+
+      if (_selectedTypes.isNotEmpty) {
+        final fusionTypes = fusion.types.map((type) => type.toLowerCase()).toSet();
+        final selectedTypesLower =
+            _selectedTypes.map((type) => type.toLowerCase()).toSet();
+        if (!selectedTypesLower.every((type) => fusionTypes.contains(type))) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+
+    // Then, apply ability filter asynchronously if needed
+    if (_selectedAbility != null) {
+      final loader = PokemonEnrichmentLoader();
+      final List<Fusion> refined = [];
+      final String required = _selectedAbility!.toLowerCase();
+      for (final fusion in pre) {
+        final combined = await loader.getCombinedAbilities(
+          fusion.headPokemon,
+          fusion.bodyPokemon,
+        );
+        final combinedLower = combined.map((e) => e.toLowerCase()).toSet();
+        if (combinedLower.contains(required)) refined.add(fusion);
+      }
+      pre = refined;
+    }
+
+    // Apply moves filter (must contain all selected moves)
+    if (_selectedMoves.isNotEmpty) {
+      final loader = PokemonEnrichmentLoader();
+      final List<Fusion> refined = [];
+      final required = _selectedMoves.map((m) => m.toLowerCase()).toList(growable: false);
+      for (final fusion in pre) {
+        final combined = await loader.getCombinedMoves(
+          fusion.headPokemon,
+          fusion.bodyPokemon,
+        );
+        final combinedLower = combined.map((e) => e.toLowerCase()).toSet();
+        final ok = required.every(combinedLower.contains);
+        if (ok) refined.add(fusion);
+      }
+      pre = refined;
+    }
+
+    if (!mounted) return;
     setState(() {
-      // Reiniciar desde el orden base antes de filtrar
-      final starting = List<Fusion>.from(_baseOrder);
-      _filteredFusions = starting.where((fusion) {
-            // Filter by selected Pokemon (fusion must contain ALL selected Pokemon as head or body)
-            if (_selectedPokemon.isNotEmpty) {
-              final headName = fusion.headPokemon.name;
-              final bodyName = fusion.bodyPokemon.name;
-              final fusionPokemon = {headName, bodyName};
-              final hasAllSelectedPokemon = _selectedPokemon.every(
-                (pokemon) => fusionPokemon.contains(pokemon),
-              );
-              if (!hasAllSelectedPokemon) {
-                return false;
-              }
-            }
-
-            // Filter by selected types (AND logic - both types must be present)
-            if (_selectedTypes.isNotEmpty) {
-              final fusionTypes =
-                  fusion.types.map((type) => type.toLowerCase()).toSet();
-              final selectedTypesLower =
-                  _selectedTypes.map((type) => type.toLowerCase()).toSet();
-              if (!selectedTypesLower.every(
-                (type) => fusionTypes.contains(type),
-              )) {
-                return false;
-              }
-            }
-
-            return true;
-          }).toList();
+      _filteredFusions = pre;
       _applySortInternal();
     });
   }
@@ -252,9 +300,23 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
     );
   }
 
+  void _setAbilityFilter(String? ability) {
+    setState(() {
+      _selectedAbility = ability;
+    });
+    // Reapply filters including abilities
+    // ignore: discarded_futures
+    _applyFilters();
+  }
+
+  // Removed _applyFiltersWithAbilities; unified into _applyFilters()
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       appBar: AppBar(
         title: Text(
           'Compare Fusions',
@@ -324,7 +386,7 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
             icon: Icon(
               _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
               color:
-                  (_selectedTypes.isNotEmpty || _selectedPokemon.isNotEmpty)
+                  (_selectedTypes.isNotEmpty || _selectedPokemon.isNotEmpty || _selectedAbility != null || _selectedMoves.isNotEmpty)
                       ? Theme.of(context).colorScheme.primary
                       : null,
             ),
@@ -696,6 +758,208 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
                                 ],
                               ),
                             ),
+                          const SizedBox(height: 8),
+                          // Ability filter (single selection autocomplete)
+                          Builder(builder: (context) {
+                                TextEditingController? abilityCtrl;
+                                FocusNode? abilityFocus;
+                                return Autocomplete<String>(
+                                  optionsBuilder: (TextEditingValue tev) {
+                                    final q = tev.text.trim().toLowerCase();
+                                    if (q.isEmpty) {
+                                      return _allAbilities.take(20);
+                                    }
+                                    return _allAbilities
+                                        .where((a) => a.toLowerCase().contains(q))
+                                        .take(30);
+                                  },
+                                  displayStringForOption: (opt) => opt,
+                                  onSelected: (value) {
+                                    _setAbilityFilter(value);
+                                    if (abilityCtrl != null) abilityCtrl!.text = value;
+                                    abilityFocus?.unfocus();
+                                  },
+                                  fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                                    abilityCtrl = controller;
+                                    abilityFocus = focusNode;
+                                    if (_selectedAbility != null && controller.text != _selectedAbility) {
+                                      controller.text = _selectedAbility!;
+                                    }
+                                    return TextField(
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      decoration: InputDecoration(
+                                        hintText: 'Filter by ability',
+                                        border: const OutlineInputBorder(),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        suffixIcon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (controller.text.isNotEmpty || _selectedAbility != null)
+                                              IconButton(
+                                                tooltip: 'Clear',
+                                                icon: const Icon(Icons.clear),
+                                                onPressed: () {
+                                                  controller.clear();
+                                                  _setAbilityFilter(null);
+                                                  focusNode.requestFocus();
+                                                },
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      onChanged: (_) {
+                                        // typing only updates suggestions
+                                      },
+                                    );
+                                  },
+                                  optionsViewBuilder: (context, onSelected, options) {
+                                    final list = options.toList(growable: false);
+                                    return Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Material(
+                                        elevation: 4,
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(maxHeight: 280, minWidth: 280),
+                                          child: ListView.builder(
+                                            padding: EdgeInsets.zero,
+                                            itemCount: list.length,
+                                            itemBuilder: (context, index) {
+                                              final ability = list[index];
+                                              final already = _selectedAbility == ability;
+                                              return ListTile(
+                                                dense: true,
+                                                title: Text(ability),
+                                                trailing: already ? const Icon(Icons.check, color: Colors.green) : null,
+                                                onTap: () => onSelected(ability),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }),
+
+                           const SizedBox(height: 8),
+                           // Moves filter (multi-select up to 4)
+                           Builder(builder: (context) {
+                             TextEditingController? movesCtrl;
+                             FocusNode? movesFocus;
+                             return Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Autocomplete<String>(
+                                   optionsBuilder: (TextEditingValue tev) {
+                                     final q = tev.text.trim().toLowerCase();
+                                     if (q.isEmpty) return _allMoves.take(20);
+                                     return _allMoves.where((m) => m.toLowerCase().contains(q)).take(30);
+                                   },
+                                   displayStringForOption: (opt) => opt,
+                                   onSelected: (value) {
+                                     setState(() {
+                                       if (_selectedMoves.contains(value)) return;
+                                       if (_selectedMoves.length >= 4) {
+                                         ScaffoldMessenger.of(context).showSnackBar(
+                                           const SnackBar(content: Text('Maximum 4 moves can be selected')),
+                                         );
+                                         return;
+                                       }
+                                       _selectedMoves.add(value);
+                                     });
+                                     if (movesCtrl != null) movesCtrl!.clear();
+                                     movesFocus?.unfocus();
+                                     // ignore: discarded_futures
+                                     _applyFilters();
+                                   },
+                                   fieldViewBuilder: (context, controller, focusNode, _) {
+                                     movesCtrl = controller;
+                                     movesFocus = focusNode;
+                                     return TextField(
+                                       controller: controller,
+                                       focusNode: focusNode,
+                                       decoration: InputDecoration(
+                                         hintText: _selectedMoves.isEmpty ? 'Filter by moves (max 4)' : 'Add another move',
+                                         border: const OutlineInputBorder(),
+                                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                         suffixIcon: Row(
+                                           mainAxisSize: MainAxisSize.min,
+                                           children: [
+                                             if (_selectedMoves.isNotEmpty)
+                                               IconButton(
+                                                 tooltip: 'Clear moves',
+                                                 icon: const Icon(Icons.clear),
+                                                 onPressed: () {
+                                                   setState(() {
+                                                     _selectedMoves.clear();
+                                                   });
+                                                   controller.clear();
+                                                   // ignore: discarded_futures
+                                                   _applyFilters();
+                                                   focusNode.requestFocus();
+                                                 },
+                                               ),
+                                           ],
+                                         ),
+                                       ),
+                                     );
+                                   },
+                                   optionsViewBuilder: (context, onSelected, options) {
+                                     final list = options.toList(growable: false);
+                                     return Align(
+                                       alignment: Alignment.topLeft,
+                                       child: Material(
+                                         elevation: 4,
+                                         borderRadius: BorderRadius.circular(8),
+                                         child: ConstrainedBox(
+                                           constraints: const BoxConstraints(maxHeight: 280, minWidth: 280),
+                                           child: ListView.builder(
+                                             padding: EdgeInsets.zero,
+                                             itemCount: list.length,
+                                             itemBuilder: (context, index) {
+                                               final move = list[index];
+                                               final already = _selectedMoves.contains(move);
+                                               return ListTile(
+                                                 dense: true,
+                                                 title: Text(move),
+                                                 trailing: already ? const Icon(Icons.check, color: Colors.green) : null,
+                                                 onTap: () => onSelected(move),
+                                               );
+                                             },
+                                           ),
+                                         ),
+                                       ),
+                                     );
+                                   },
+                                 ),
+                                 const SizedBox(height: 8),
+                                 SingleChildScrollView(
+                                   scrollDirection: Axis.horizontal,
+                                   child: Row(
+                                     children: _selectedMoves
+                                         .map((m) => Padding(
+                                               padding: const EdgeInsets.only(right: 8),
+                                               child: Chip(
+                                                 label: Text(m, style: const TextStyle(color: Colors.white)),
+                                                 backgroundColor: Theme.of(context).colorScheme.primary,
+                                                 deleteIcon: const Icon(Icons.close, color: Colors.white),
+                                                 onDeleted: () {
+                                                   setState(() {
+                                                     _selectedMoves.remove(m);
+                                                     // ignore: discarded_futures
+                                                     _applyFilters();
+                                                   });
+                                                 },
+                                               ),
+                                             ))
+                                         .toList(),
+                                   ),
+                                 ),
+                               ],
+                             );
+                           }),
                         ],
                       ),
                     ),
@@ -799,6 +1063,7 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
