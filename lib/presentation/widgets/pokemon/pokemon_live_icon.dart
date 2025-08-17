@@ -28,7 +28,22 @@ class PokemonLiveIcon extends StatelessWidget {
         future: _getImageInfo(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return Container(); // Placeholder mientras carga
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.black87,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+            );
           }
 
           return CustomPaint(
@@ -106,7 +121,22 @@ class _AnimatedPokemonLiveIconState extends State<_AnimatedPokemonLiveIcon> {
           future: _getImageInfo(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Container(); // Placeholder mientras carga
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.black87,
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                ),
+              );
             }
 
             return CustomPaint(

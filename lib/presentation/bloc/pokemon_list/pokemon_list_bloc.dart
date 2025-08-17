@@ -19,6 +19,7 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     on<SortSelectedByDex>(_onSortSelectedByDex);
     on<ReorderSelectedPokemon>(_onReorderSelectedPokemon);
     on<UpdateMovesFilter>(_onUpdateMovesFilter);
+    on<UpdateTypesFilter>(_onUpdateTypesFilter);
   }
 
   Future<void> _onLoadPokemonList(
@@ -50,6 +51,13 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
 
       try {
         var filteredPokemon = await getPokemonList.search(event.query);
+        // Apply types filter first (sync)
+        if (currentState.typesFilter.isNotEmpty) {
+          filteredPokemon = _applyTypesFilterToList(
+            filteredPokemon,
+            currentState.typesFilter,
+          );
+        }
         // Apply moves filter if present
         if (currentState.movesFilter.isNotEmpty) {
           filteredPokemon = await _applyMovesFilterToList(
@@ -159,6 +167,9 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     try {
       // Start from current search query base
       var base = await getPokemonList.search(currentState.searchQuery);
+      if (currentState.typesFilter.isNotEmpty) {
+        base = _applyTypesFilterToList(base, currentState.typesFilter);
+      }
       if (event.moves.isNotEmpty) {
         base = await _applyMovesFilterToList(
           base,
@@ -178,6 +189,38 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     }
   }
 
+  Future<void> _onUpdateTypesFilter(
+    UpdateTypesFilter event,
+    Emitter<PokemonListState> emit,
+  ) async {
+    if (state is! PokemonListLoaded) return;
+    final currentState = state as PokemonListLoaded;
+    try {
+      var base = await getPokemonList.search(currentState.searchQuery);
+      // Apply types first
+      if (event.types.isNotEmpty) {
+        base = _applyTypesFilterToList(base, event.types);
+      }
+      // Then moves if present
+      if (currentState.movesFilter.isNotEmpty) {
+        base = await _applyMovesFilterToList(
+          base,
+          currentState.movesFilter,
+          allPokemon: currentState.allPokemon,
+          activeQuery: currentState.searchQuery,
+        );
+      }
+      emit(
+        currentState.copyWith(
+          filteredPokemon: base,
+          typesFilter: List<String>.from(event.types),
+        ),
+      );
+    } catch (e) {
+      emit(PokemonListError('Failed to apply types filter: $e'));
+    }
+  }
+
   Future<List<Pokemon>> _applyMovesFilterToList(
     List<Pokemon> list,
     List<String> requiredMoves, {
@@ -188,27 +231,30 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     final loader = PokemonEnrichmentLoader();
     final List<Pokemon> out = [];
     for (final p in list) {
+      final isSmeargle = p.name.toLowerCase() == 'smeargle';
+      if (isSmeargle) {
+        // By concept, Smeargle can learn any move; the moves filter must never exclude it
+        out.add(p);
+        continue;
+      }
       final moves = await loader.getMovesOfPokemon(p);
       final lower = moves.map((m) => m.toLowerCase()).toSet();
       final ok = lowerRequired.every(lower.contains);
       if (ok) out.add(p);
     }
-    // Always include Smeargle when filtering by moves, unless the active query
-    // is an ability selection (conceptually Smeargle does not gain abilities).
-    if (requiredMoves.isNotEmpty) {
-      final abilities = await loader.getAllAbilities();
-      final isAbilityQuery = abilities.any((a) => a.toLowerCase() == activeQuery.toLowerCase());
-      if (!isAbilityQuery) {
-        final smeargle = allPokemon.firstWhere(
-          (p) => p.name.toLowerCase() == 'smeargle',
-          orElse: () => out.isNotEmpty ? out.first : list.first,
-        );
-        if (!out.contains(smeargle) && smeargle.name.toLowerCase() == 'smeargle') {
-          out.add(smeargle);
-        }
-      }
-    }
     return out;
+  }
+
+  List<Pokemon> _applyTypesFilterToList(
+    List<Pokemon> list,
+    List<String> selectedTypes,
+  ) {
+    if (selectedTypes.isEmpty) return list;
+    final selectedLower = selectedTypes.map((t) => t.toLowerCase()).toSet();
+    return list.where((p) {
+      final typesLower = p.types.map((t) => t.toLowerCase()).toSet();
+      return selectedLower.every(typesLower.contains);
+    }).toList();
   }
 
   // bulk visible selection handlers removed

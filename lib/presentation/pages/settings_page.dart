@@ -12,13 +12,15 @@ import 'package:fusion_box/presentation/widgets/pokemon/cached_pokemon_icon.dart
 import 'package:fusion_box/presentation/widgets/pokemon/pokemon_live_icon.dart';
 import 'package:fusion_box/presentation/widgets/common/cache_debug_widget.dart';
 import 'package:fusion_box/core/services/permission_service.dart';
+import 'package:fusion_box/presentation/widgets/common/portrait_lock.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return PortraitLock(
+      child: MultiBlocProvider(
       providers: [
         BlocProvider(
           create: (context) => sl<GameSetupBloc>()..add(CheckGamePath()),
@@ -513,7 +515,7 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildInfoRow(String label, String value) {

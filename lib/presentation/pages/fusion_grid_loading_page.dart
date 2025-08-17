@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:fusion_box/presentation/widgets/common/portrait_lock.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
@@ -68,7 +69,8 @@ class _FusionGridLoadingPageState extends State<FusionGridLoadingPage>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<FusionGridBloc, FusionGridState>(
+    return PortraitLock(
+      child: BlocListener<FusionGridBloc, FusionGridState>(
       listener: (context, state) {
         if (state is FusionGridLoaded) {
           // Navegar al grid cuando esté completamente listo con transición fluida
@@ -356,6 +358,6 @@ class _FusionGridLoadingPageState extends State<FusionGridLoadingPage>
           );
         },
       ),
-    );
+    ));
   }
 }

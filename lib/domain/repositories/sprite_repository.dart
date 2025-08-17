@@ -31,4 +31,7 @@ abstract class SpriteRepository {
 
   /// Obtiene un sprite autogenerado como fallback
   Future<SpriteData?> getAutogenSprite(int headPokemonId, int bodyPokemonId);
+
+  /// Limpia cachés efímeras en memoria (no persistentes) usadas durante la sesión
+  void clearEphemeralVariantCache();
 }

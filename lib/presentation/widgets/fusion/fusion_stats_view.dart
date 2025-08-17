@@ -21,49 +21,51 @@ class FusionStatsView extends StatelessWidget {
     final double totalValueWidth = dense ? 36 : 40;
     final double valueWidth = dense ? 20 : 30;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _row('HP', stats.hp, barHeight, fontSize, valueWidth),
-        _row('Attack', stats.attack, barHeight, fontSize, valueWidth),
-        _row('Defense', stats.defense, barHeight, fontSize, valueWidth),
-        _row('Sp. Atk', stats.specialAttack, barHeight, fontSize, valueWidth),
-        _row('Sp. Def', stats.specialDefense, barHeight, fontSize, valueWidth),
-        _row('Speed', stats.speed, barHeight, fontSize, valueWidth),
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _row('HP', stats.hp, barHeight, fontSize, valueWidth),
+          _row('Attack', stats.attack, barHeight, fontSize, valueWidth),
+          _row('Defense', stats.defense, barHeight, fontSize, valueWidth),
+          _row('Sp. Atk', stats.specialAttack, barHeight, fontSize, valueWidth),
+          _row('Sp. Def', stats.specialDefense, barHeight, fontSize, valueWidth),
+          _row('Speed', stats.speed, barHeight, fontSize, valueWidth),
 
-        Divider(color: Colors.grey[600], height: dense ? 18 : 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
-            children: [
-              SizedBox(
-                width: labelWidth,
-                child: Text(
-                  'Total',
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          Divider(color: Colors.grey[600], height: dense ? 18 : 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: labelWidth,
+                  child: Text(
+                    'Total',
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: totalValueWidth,
-                child: Text(
-                  total.toString(),
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                const Spacer(),
+                SizedBox(
+                  width: totalValueWidth,
+                  child: Text(
+                    total.toString(),
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.right,
                   ),
-                  textAlign: TextAlign.right,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fusion_box/presentation/widgets/common/portrait_lock.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/core/services/saved_boxes_service.dart';
 import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
@@ -96,12 +97,13 @@ class _SavedBoxesPageState extends State<SavedBoxesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PortraitLock(
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Saved Boxes'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       ),
-      body: BlocBuilder<PokemonListBloc, PokemonListState>(
+        body: BlocBuilder<PokemonListBloc, PokemonListState>(
         builder: (context, state) {
           return FutureBuilder<List<Map<String, dynamic>>>(
             future: _futureBoxes,
@@ -236,6 +238,7 @@ class _SavedBoxesPageState extends State<SavedBoxesPage> {
             },
           );
         },
+        ),
       ),
     );
   }

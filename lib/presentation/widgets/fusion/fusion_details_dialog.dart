@@ -1,20 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_details.dart';
+import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 
 class FusionDetailsDialog extends StatefulWidget {
-  final Fusion fusion;
+  final Fusion? fusion;
+  final Pokemon? pokemon;
+  final FusionGridBloc? fusionGridBloc;
 
   const FusionDetailsDialog({
     super.key,
-    required this.fusion,
-  });
+    this.fusion,
+    this.pokemon,
+    this.fusionGridBloc,
+  }) : assert(
+          (fusion != null) ^ (pokemon != null),
+          'Provide exactly one of fusion or pokemon',
+        );
 
   static void show(BuildContext context, Fusion fusion) {
+    // Capture bloc from the caller's context (within provider scope)
+    final fusionGridBloc = context.read<FusionGridBloc>();
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => FusionDetailsDialog(fusion: fusion),
+      builder: (dialogContext) => FusionDetailsDialog(
+        fusion: fusion,
+        fusionGridBloc: fusionGridBloc,
+      ),
+    );
+  }
+
+  static void showForPokemon(BuildContext context, Pokemon pokemon) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => FusionDetailsDialog(pokemon: pokemon),
     );
   }
 
@@ -32,7 +55,11 @@ class _FusionDetailsDialogState extends State<FusionDetailsDialog> {
       ),
       title: null,
       contentPadding: const EdgeInsets.all(24),
-      content: FusionDetailsContent(fusion: widget.fusion),
+      content: FusionDetailsContent(
+        fusion: widget.fusion,
+        pokemon: widget.pokemon,
+        fusionGridBloc: widget.fusionGridBloc,
+      ),
     );
   }
 } 

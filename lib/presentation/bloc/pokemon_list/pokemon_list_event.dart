@@ -61,3 +61,12 @@ class UpdateMovesFilter extends PokemonListEvent {
   @override
   List<Object> get props => [moves];
 }
+
+class UpdateTypesFilter extends PokemonListEvent {
+  final List<String> types;
+
+  const UpdateTypesFilter(this.types);
+
+  @override
+  List<Object> get props => [types];
+}

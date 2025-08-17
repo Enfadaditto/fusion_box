@@ -18,6 +18,7 @@ class PokemonListLoaded extends PokemonListState {
   final List<Pokemon> selectedPokemon;
   final String searchQuery;
   final List<String> movesFilter;
+  final List<String> typesFilter;
 
   const PokemonListLoaded({
     required this.allPokemon,
@@ -25,6 +26,7 @@ class PokemonListLoaded extends PokemonListState {
     required this.selectedPokemon,
     this.searchQuery = '',
     this.movesFilter = const [],
+    this.typesFilter = const [],
   });
 
   @override
@@ -34,6 +36,7 @@ class PokemonListLoaded extends PokemonListState {
     selectedPokemon,
     searchQuery,
     movesFilter,
+    typesFilter,
   ];
 
   PokemonListLoaded copyWith({
@@ -42,6 +45,7 @@ class PokemonListLoaded extends PokemonListState {
     List<Pokemon>? selectedPokemon,
     String? searchQuery,
     List<String>? movesFilter,
+    List<String>? typesFilter,
   }) {
     return PokemonListLoaded(
       allPokemon: allPokemon ?? this.allPokemon,
@@ -49,6 +53,7 @@ class PokemonListLoaded extends PokemonListState {
       selectedPokemon: selectedPokemon ?? this.selectedPokemon,
       searchQuery: searchQuery ?? this.searchQuery,
       movesFilter: movesFilter ?? this.movesFilter,
+      typesFilter: typesFilter ?? this.typesFilter,
     );
   }
 }

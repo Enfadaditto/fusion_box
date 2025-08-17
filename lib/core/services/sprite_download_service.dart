@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fusion_box/config/app_config.dart';
+import 'package:fusion_box/core/services/variants_cache_service.dart';
 
 enum SpriteType { custom, base }
 
@@ -75,36 +76,18 @@ class SpriteDownloadService {
       downloadedVariants.add('');
     }
 
-    // Try variants a, b, c, d, e, f, g, h, i, j until 404
-    const possibleVariants = [
-      'a',
-      'b',
-      'c',
-      'd',
-      'e',
-      'f',
-      'g',
-      'h',
-      'i',
-      'j',
-      'l',
-      'm',
-      'n',
-      'o',
-      'p',
-      'q',
-      'r',
-      's',
-      't',
-      'u',
-      'v',
-      'w',
-      'x',
-      'y',
-      'z',
-    ];
+    // Build candidate variants: letters a-z and two-letter combos aa-zz
+    final letters = List<String>.generate(26, (i) => String.fromCharCode('a'.codeUnitAt(0) + i));
+    final twoLetters = <String>[];
+    for (int i = 0; i < 26; i++) {
+      for (int j = 0; j < 26; j++) {
+        twoLetters.add('${String.fromCharCode('a'.codeUnitAt(0) + i)}${String.fromCharCode('a'.codeUnitAt(0) + j)}');
+      }
+    }
+    // Note: combined list not needed since we run in two phases
 
-    for (final variant in possibleVariants) {
+    // Phase 1: single-letter variants a..z
+    for (final variant in letters) {
       final variantPath = baseLocalPath.replaceAll('.png', '$variant.png');
       final file = File(variantPath);
 
@@ -124,14 +107,56 @@ class SpriteDownloadService {
 
         if (success) {
           downloadedVariants.add(variant);
-        } else {
-          // Assume 404 or error, stop trying more variants
-          break;
         }
       } catch (e) {
-        // Error downloading, stop trying more variants
-        break;
+        // continue
       }
+    }
+
+    // Phase 2: two-letter variants aa..zz (with early stop on many misses)
+    int misses = 0;
+    const int maxConsecutiveMisses = 40; // heuristic: stop after many 404s
+    for (final variant in twoLetters) {
+      final variantPath = baseLocalPath.replaceAll('.png', '$variant.png');
+      final file = File(variantPath);
+
+      if (await file.exists()) {
+        downloadedVariants.add(variant);
+        misses = 0;
+        continue;
+      }
+
+      try {
+        final url = _buildDownloadUrl(headId, variant, type);
+        final success = await _downloadSprite(
+          url,
+          variantPath,
+          checkStatus404: true,
+        );
+
+        if (success) {
+          downloadedVariants.add(variant);
+          misses = 0;
+        }
+      } catch (e) {
+        // continue
+      }
+
+      if (!downloadedVariants.contains(variant)) {
+        misses++;
+        if (misses >= maxConsecutiveMisses) {
+          break; // end of likely available space
+        }
+        // small delay to avoid hammering server
+        await Future.delayed(const Duration(milliseconds: 30));
+      }
+    }
+
+    // Update cached variants for this headId
+    if (downloadedVariants.isNotEmpty) {
+      final existing = await VariantsCacheService.getCachedVariants(headId) ?? const <String>[];
+      final combined = <String>{...existing, ...downloadedVariants}.toList();
+      await VariantsCacheService.setCachedVariants(headId, combined);
     }
 
     return downloadedVariants;

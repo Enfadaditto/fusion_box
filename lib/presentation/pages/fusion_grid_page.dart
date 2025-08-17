@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
@@ -8,6 +9,8 @@ import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_ico
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_details_dialog.dart';
 import 'package:fusion_box/presentation/pages/fusions_comparator.dart';
+import 'package:fusion_box/injection_container.dart';
+import 'package:fusion_box/domain/repositories/sprite_repository.dart';
 
 class FusionGridPage extends StatefulWidget {
   const FusionGridPage({super.key});
@@ -24,11 +27,32 @@ class _FusionGridPageState extends State<FusionGridPage> {
   static const double _maxScale = 3.0;
   static const double _scaleStep = 0.25;
   bool _isToolboxVisible = true;
+  bool _isTopBarVisible = false; // Landscape-only overlay bar
+  Timer? _autoHideTimer;
 
   @override
   void dispose() {
+    // Limpiar memo efímero de variantes al salir de la página
+    try {
+      sl<SpriteRepository>().clearEphemeralVariantCache();
+    } catch (_) {}
+    _autoHideTimer?.cancel();
     _transformationController.dispose();
     super.dispose();
+  }
+
+  void _showTopBarTemporarily() {
+    setState(() {
+      _isTopBarVisible = true;
+    });
+    _autoHideTimer?.cancel();
+    _autoHideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _isTopBarVisible = false;
+        });
+      }
+    });
   }
 
   void _zoomIn() {
@@ -79,45 +103,48 @@ class _FusionGridPageState extends State<FusionGridPage> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final bool isLandscape = media.orientation == Orientation.landscape;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fusion Grid'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        actions: [
-          // Indicador de fusiones seleccionadas
-          BlocBuilder<FusionGridBloc, FusionGridState>(
-            builder: (context, state) {
-              if (state is FusionGridLoaded &&
-                  state.selectedFusionIds.isNotEmpty) {
-                return Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    margin: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[600]!),
-                    ),
-                    child: Text(
-                      '${(_currentScale * 100).round()}%',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-        ],
-      ),
-      body: BlocBuilder<FusionGridBloc, FusionGridState>(
+      appBar: isLandscape
+          ? null
+          : AppBar(
+              title: const Text('Fusion Grid'),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              actions: [
+                BlocBuilder<FusionGridBloc, FusionGridState>(
+                  builder: (context, state) {
+                    if (state is FusionGridLoaded && state.selectedFusionIds.isNotEmpty) {
+                      return Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          margin: const EdgeInsets.only(right: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[700],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[600]!),
+                          ),
+                          child: Text(
+                            '${(_currentScale * 100).round()}%',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: BlocBuilder<FusionGridBloc, FusionGridState>(
         builder: (context, state) {
           if (state is FusionGridLoading) {
             return const Center(
@@ -235,6 +262,36 @@ class _FusionGridPageState extends State<FusionGridPage> {
 
           return const Center(child: Text('No fusion grid available'));
         },
+            ),
+          ),
+
+          if (isLandscape) ...[
+            // Top grab zone to reveal the hidden bar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: media.padding.top + 14,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onVerticalDragDown: (_) => _showTopBarTemporarily(),
+                onTap: _showTopBarTemporarily,
+              ),
+            ),
+
+            // Animated overlay top bar
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              top: _isTopBarVisible ? 0 : -(kToolbarHeight + media.padding.top + 6),
+              left: 0,
+              right: 0,
+              child: _LandscapeTopBar(
+                currentScalePercent: (_currentScale * 100).round(),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -288,6 +345,55 @@ class _FusionGridPageState extends State<FusionGridPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Botón seleccionar/deseleccionar todo
+                      BlocBuilder<FusionGridBloc, FusionGridState>(
+                        builder: (context, state) {
+                          bool isAllSelected = false;
+                          bool hasFusions = false;
+                          if (state is FusionGridLoaded) {
+                            int totalFusions = 0;
+                            for (final row in state.fusionGrid) {
+                              for (final fusion in row) {
+                                if (fusion != null) totalFusions++;
+                              }
+                            }
+                            hasFusions = totalFusions > 0;
+                            isAllSelected = hasFusions &&
+                                state.selectedFusionIds.length == totalFusions;
+                          }
+
+                          final isEnabled = state is FusionGridLoaded && hasFusions;
+                          return IconButton(
+                            icon: Icon(
+                              isAllSelected ? Icons.clear_all : Icons.select_all,
+                              size: 18,
+                            ),
+                            onPressed: isEnabled
+                                ? () {
+                                    if (isAllSelected) {
+                                      context
+                                          .read<FusionGridBloc>()
+                                          .add(ClearSelectedFusions());
+                                    } else {
+                                      context
+                                          .read<FusionGridBloc>()
+                                          .add(SelectAllFusions());
+                                    }
+                                  }
+                                : null,
+                            tooltip: isAllSelected ? 'Deselect All' : 'Select All',
+                            style: IconButton.styleFrom(
+                              foregroundColor: isEnabled
+                                  ? Colors.white
+                                  : Colors.grey[400],
+                              iconSize: 18,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(32, 32),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
                       // Botones de zoom
                       IconButton(
                         icon: const Icon(Icons.zoom_out, size: 18),
@@ -889,6 +995,62 @@ class _FusionGridPageState extends State<FusionGridPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _LandscapeTopBar extends StatelessWidget {
+  final int currentScalePercent;
+  const _LandscapeTopBar({required this.currentScalePercent});
+
+  @override
+  Widget build(BuildContext context) {
+    final double topPad = MediaQuery.of(context).padding.top;
+    return Material(
+      elevation: 4,
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: Container(
+        padding: EdgeInsets.only(top: topPad),
+        height: topPad + kToolbarHeight,
+        child: Row(
+          children: [
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Text(
+                'Fusion Grid',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            BlocBuilder<FusionGridBloc, FusionGridState>(
+              builder: (context, state) {
+                if (state is FusionGridLoaded && state.selectedFusionIds.isNotEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[600]!),
+                    ),
+                    child: Text(
+                      '$currentScalePercent%',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -70,36 +70,38 @@ class _FusionCompareCardMediumState extends State<FusionCompareCardMedium> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[600]!),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey[600]!),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[600]!),
+              ),
+              child: widget.fusion.primarySprite != null
+                  ? SpriteFromSheet(
+                      spriteData: widget.fusion.primarySprite!,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.contain,
+                    )
+                  : Center(child: Text('${widget.fusion.headPokemon.name} + ${widget.fusion.bodyPokemon.name}')),
             ),
-            child: widget.fusion.primarySprite != null
-                ? SpriteFromSheet(
-                    spriteData: widget.fusion.primarySprite!,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.contain,
-                  )
-                : Center(child: Text('${widget.fusion.headPokemon.name} + ${widget.fusion.bodyPokemon.name}')),
-          ),
-          const SizedBox(height: 10),
-          // Stats only (compact)
-          if (_isLoading)
-            const SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else if (_stats != null)
-            FusionStatsView(stats: _stats!, dense: false),
-        ],
+            const SizedBox(height: 10),
+            // Stats only (compact)
+            if (_isLoading)
+              const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (_stats != null)
+              FusionStatsView(stats: _stats!, dense: false),
+          ],
+        ),
       ),
     );
   }

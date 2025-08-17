@@ -21,7 +21,9 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
     on<ToggleFusionSelection>(_onToggleFusionSelection);
     on<ToggleComparisonMode>(_onToggleComparisonMode);
     on<ClearSelectedFusions>(_onClearSelectedFusions);
+    on<SelectAllFusions>(_onSelectAllFusions);
     on<UpdateFusionSort>(_onUpdateFusionSort);
+    on<UpdateFusionSpriteVariant>(_onUpdateFusionSpriteVariant);
   }
 
   Future<void> _onGenerateFusionGrid(
@@ -49,6 +51,49 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
     } catch (e) {
       emit(FusionGridError('Failed to generate fusion grid: $e'));
     }
+  }
+
+  void _onUpdateFusionSpriteVariant(
+    UpdateFusionSpriteVariant event,
+    Emitter<FusionGridState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is! FusionGridLoaded) return;
+
+    List<List<Fusion?>> _mapGrid(List<List<Fusion?>> grid) {
+      final newGrid = <List<Fusion?>>[];
+      for (final row in grid) {
+        final newRow = <Fusion?>[];
+        for (final fusion in row) {
+          if (fusion != null &&
+              fusion.headPokemon.pokedexNumber == event.headId &&
+              fusion.bodyPokemon.pokedexNumber == event.bodyId) {
+            newRow.add(
+              Fusion(
+                headPokemon: fusion.headPokemon,
+                bodyPokemon: fusion.bodyPokemon,
+                availableSprites: fusion.availableSprites,
+                types: fusion.types,
+                primarySprite: event.sprite,
+                stats: fusion.stats,
+              ),
+            );
+          } else {
+            newRow.add(fusion);
+          }
+        }
+        newGrid.add(newRow);
+      }
+      return newGrid;
+    }
+
+    final updatedBase = _mapGrid(currentState.baseFusionGrid);
+    final updatedGrid = _mapGrid(currentState.fusionGrid);
+
+    emit(currentState.copyWith(
+      baseFusionGrid: updatedBase,
+      fusionGrid: updatedGrid,
+    ));
   }
 
   void _onUpdateFusionSort(
@@ -193,6 +238,28 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
       emit(currentState.copyWith(
         selectedFusionIds: const {},
         isComparisonMode: false,
+      ));
+    }
+  }
+
+  void _onSelectAllFusions(
+    SelectAllFusions event,
+    Emitter<FusionGridState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is FusionGridLoaded) {
+      final allIds = <String>{};
+      for (final row in currentState.fusionGrid) {
+        for (final fusion in row) {
+          if (fusion != null) {
+            allIds.add(fusion.fusionId);
+          }
+        }
+      }
+
+      emit(currentState.copyWith(
+        selectedFusionIds: allIds,
+        isComparisonMode: true,
       ));
     }
   }

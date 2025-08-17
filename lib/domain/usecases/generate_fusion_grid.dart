@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:fusion_box/domain/entities/fusion.dart';
@@ -9,6 +10,10 @@ import 'package:fusion_box/domain/usecases/get_fusion.dart';
 import 'package:fusion_box/core/services/settings_service.dart';
 import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 import 'package:image/image.dart' as img;
+import 'package:fusion_box/core/services/preferred_sprite_service.dart';
+import 'package:fusion_box/injection_container.dart';
+import 'package:fusion_box/core/services/sprite_download_service.dart';
+import 'package:fusion_box/core/services/variants_cache_service.dart';
 
 // Clase para pasar parámetros al isolate
 class FusionGridParams {
@@ -87,6 +92,10 @@ class GenerateFusionGrid {
 
   Future<List<List<Fusion?>>> call(List<Pokemon> selectedPokemon) async {
     try {
+      // Limpiar caché de variantes al inicio (forzar lectura desde spritesheet)
+      try {
+        await VariantsCacheService.clearAll();
+      } catch (_) {}
       // Obtener configuración de fusiones AxA
       final useAxAFusions = await SettingsService.getUseAxAFusions();
 
@@ -113,6 +122,30 @@ class GenerateFusionGrid {
     List<List<Fusion?>> basicGrid,
   ) async {
     final gridWithSprites = <List<Fusion?>>[];
+    final prefetchedHeadIds = <int>{};
+
+    // Prefetch de todas las filas al inicio para dar tiempo a completar
+    try {
+      final downloader = sl<SpriteDownloadService>();
+      for (int i = 0; i < basicGrid.length; i++) {
+        final rowHeadId = (i == 0
+            ? basicGrid[i][1]!.headPokemon.pokedexNumber
+            : basicGrid[i][0]!.headPokemon.pokedexNumber);
+        if (!prefetchedHeadIds.contains(rowHeadId)) {
+          final spritesheetPath = await getFusion.spriteRepository.getSpritesheetPath(rowHeadId);
+          if (spritesheetPath != null) {
+            prefetchedHeadIds.add(rowHeadId);
+            unawaited(
+              downloader.downloadAllVariants(
+                headId: rowHeadId,
+                baseLocalPath: spritesheetPath,
+                type: SpriteType.custom,
+              ),
+            );
+          }
+        }
+      }
+    } catch (_) {}
 
     for (int i = 0; i < basicGrid.length; i++) {
       final row = <Fusion?>[];
@@ -125,6 +158,23 @@ class GenerateFusionGrid {
           );
 
       img.Image? image;
+      // Lanzar prefetched variants en segundo plano por headId de la fila
+      try {
+        final rowHeadId = (i == 0
+                ? basicGrid[i][1]!.headPokemon.pokedexNumber
+                : basicGrid[i][0]!.headPokemon.pokedexNumber);
+        if (spritesheetPath != null && !prefetchedHeadIds.contains(rowHeadId)) {
+          prefetchedHeadIds.add(rowHeadId);
+          final downloader = sl<SpriteDownloadService>();
+          unawaited(
+            downloader.downloadAllVariants(
+              headId: rowHeadId,
+              baseLocalPath: spritesheetPath,
+              type: SpriteType.custom,
+            ),
+          );
+        }
+      } catch (_) {}
       if (spritesheetPath != null) {
         final spriteSheet = File(spritesheetPath);
 
@@ -141,19 +191,42 @@ class GenerateFusionGrid {
         if (fusion != null) {
           SpriteData? finalSprite;
 
-          if (spritesheetPath != null) {
-            if (image != null) {
-              finalSprite = await getFusion.spriteRepository
-                  .getSpecificSpriteFromSpritesheet(
-                    spritesheetPath,
-                    image,
-                    fusion.headPokemon.pokedexNumber,
-                    fusion.bodyPokemon.pokedexNumber,
-                  );
+          // 1) Intentar respetar la variante preferida del usuario
+          final preferredVariant = await PreferredSpriteService.getPreferredVariant(
+            fusion.headPokemon.pokedexNumber,
+            fusion.bodyPokemon.pokedexNumber,
+          );
+          if (preferredVariant != null) {
+            // Si la preferencia es la base (''), podemos usar el spritesheet ya cargado
+            if (preferredVariant.isEmpty && spritesheetPath != null && image != null) {
+              finalSprite = await getFusion.spriteRepository.getSpecificSpriteFromSpritesheet(
+                spritesheetPath,
+                image,
+                fusion.headPokemon.pokedexNumber,
+                fusion.bodyPokemon.pokedexNumber,
+                variant: preferredVariant,
+              );
             }
+            // Para variantes no vacías, leer directamente desde su archivo específico
+            finalSprite ??= await getFusion.spriteRepository.getSpecificSprite(
+              fusion.headPokemon.pokedexNumber,
+              fusion.bodyPokemon.pokedexNumber,
+              variant: preferredVariant,
+            );
           }
 
-          // Si no hay sprite del spritesheet, intentar obtener sprite específico
+          // 2) Si no hay preferencia o falló, intentar sprite del spritesheet base
+          if (finalSprite == null && spritesheetPath != null && image != null) {
+            finalSprite = await getFusion.spriteRepository
+                .getSpecificSpriteFromSpritesheet(
+                  spritesheetPath,
+                  image,
+                  fusion.headPokemon.pokedexNumber,
+                  fusion.bodyPokemon.pokedexNumber,
+                );
+          }
+
+          // 3) Si no hay sprite del spritesheet, intentar obtener sprite específico
           finalSprite ??= await getFusion.spriteRepository.getSpecificSprite(
             fusion.headPokemon.pokedexNumber,
             fusion.bodyPokemon.pokedexNumber,
