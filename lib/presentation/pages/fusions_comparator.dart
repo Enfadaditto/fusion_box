@@ -319,7 +319,7 @@ class _FusionsComparatorPageState extends State<FusionsComparatorPage> {
       child: Scaffold(
       appBar: AppBar(
         title: Text(
-          'Compare Fusions',
+          'Compare',
         ),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         leading: IconButton(

@@ -1778,7 +1778,7 @@ class _TypesFilterState extends State<_TypesFilter> {
                             children: [
                               if (controller.text.isNotEmpty)
                                 IconButton(
-                                  tooltip: 'Limpiar',
+                                  tooltip: 'Clear',
                                   icon: const Icon(Icons.clear),
                                   onPressed: () {
                                     controller.clear();
@@ -1906,7 +1906,7 @@ class _MovesFilterState extends State<_MovesFilter> {
                   if (_selected.contains(value)) return;
                   if (_selected.length >= 4) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Máximo 4 movimientos')),
+                      const SnackBar(content: Text('Maximum 4 moves')),
                     );
                     return;
                   }
@@ -1920,7 +1920,7 @@ class _MovesFilterState extends State<_MovesFilter> {
                     controller: controller,
                     focusNode: focusNode,
                     decoration: InputDecoration(
-                      hintText: 'Filtrar por movimientos (hasta 4)',
+                      hintText: 'Filter by moves (up to 4)',
                       border: const OutlineInputBorder(),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       suffixIcon: Row(
@@ -1928,7 +1928,7 @@ class _MovesFilterState extends State<_MovesFilter> {
                         children: [
                           if (controller.text.isNotEmpty)
                             IconButton(
-                              tooltip: 'Limpiar',
+                              tooltip: 'Clear',
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 controller.clear();
@@ -1986,7 +1986,7 @@ class _MovesFilterState extends State<_MovesFilter> {
                   _apply();
                 },
                 icon: const Icon(Icons.clear_all),
-                label: const Text('Limpiar movimientos'),
+                label: const Text('Clear moves'),
               ),
           ],
         ),

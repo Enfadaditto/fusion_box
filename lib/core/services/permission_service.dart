@@ -98,21 +98,21 @@ class PermissionService {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            'Permiso requerido',
+            'Permission required',
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           content: Text(
-            'Necesitas habilitar el acceso al almacenamiento en configuración.\n\n'
-            'Ve a: Aplicaciones > Fusion Box > Permisos',
+            'You need to enable storage access in system settings.\n\n'
+            'Go to: Apps > Fusion Box > Permissions',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'Entendido',
+                'Got it',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -121,7 +121,7 @@ class PermissionService {
                 Navigator.of(context).pop();
                 openAppSettings();
               },
-              child: const Text('Configuración'),
+              child: const Text('Open Settings'),
             ),
           ],
         );

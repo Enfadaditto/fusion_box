@@ -156,7 +156,7 @@ class _SavedBoxesPageState extends State<SavedBoxesPage> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text('${ids.length} Pokémon'),
+                            Text('${ids.length} Pokemon'),
                             const SizedBox(height: 8),
                             if (state is PokemonListLoaded)
                               FutureBuilder<List<_PokemonTotalStats>>(
