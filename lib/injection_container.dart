@@ -30,56 +30,56 @@ import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_bloc.dart';
 import 'package:fusion_box/presentation/bloc/settings/settings_bloc.dart';
 
-final sl = GetIt.instance;
+final instance = GetIt.instance;
 
 Future<void> init() async {
   // External dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
-  sl.registerLazySingleton(() => sharedPreferences);
+  instance.registerLazySingleton(() => sharedPreferences);
 
   // Data sources
-  sl.registerLazySingleton<GameLocalDataSource>(
+  instance.registerLazySingleton<GameLocalDataSource>(
     () => GameLocalDataSourceImpl(),
   );
 
-  sl.registerLazySingleton<PokemonLocalDataSource>(
+  instance.registerLazySingleton<PokemonLocalDataSource>(
     () => PokemonLocalDataSourceImpl(),
   );
 
   // Services
-  sl.registerLazySingleton(() => SpriteDownloadService(preferences: sl()));
+  instance.registerLazySingleton(() => SpriteDownloadService(preferences: instance()));
 
   // Parsers
-  sl.registerLazySingleton(() => SpriteParser());
+  instance.registerLazySingleton(() => SpriteParser());
 
-  sl.registerLazySingleton(
+  instance.registerLazySingleton(
     () => FusionCalculator(
-      spriteParser: sl(),
-      gameLocalDataSource: sl(),
-      spriteDownloadService: sl(),
+      spriteParser: instance(),
+      gameLocalDataSource: instance(),
+      spriteDownloadService: instance(),
     ),
   );
 
   // Repositories
-  sl.registerLazySingleton<PokemonRepository>(
-    () => PokemonRepositoryImpl(localDataSource: sl()),
+  instance.registerLazySingleton<PokemonRepository>(
+    () => PokemonRepositoryImpl(localDataSource: instance()),
   );
 
-  sl.registerLazySingleton<SpriteRepository>(
-    () => SpriteRepositoryImpl(fusionCalculator: sl()),
+  instance.registerLazySingleton<SpriteRepository>(
+    () => SpriteRepositoryImpl(fusionCalculator: instance()),
   );
 
   // Use cases
-  sl.registerLazySingleton(() => GetPokemonList(repository: sl()));
-  sl.registerLazySingleton(() => SetupGamePath(gameLocalDataSource: sl()));
-  sl.registerLazySingleton(
-    () => GetFusion(spriteRepository: sl(), pokemonRepository: sl()),
+  instance.registerLazySingleton(() => GetPokemonList(repository: instance()));
+  instance.registerLazySingleton(() => SetupGamePath(gameLocalDataSource: instance()));
+  instance.registerLazySingleton(
+    () => GetFusion(spriteRepository: instance(), pokemonRepository: instance()),
   );
-  sl.registerLazySingleton(() => GenerateFusionGrid(getFusion: sl()));
+  instance.registerLazySingleton(() => GenerateFusionGrid(getFusion: instance()));
 
   // Blocs
-  sl.registerFactory(() => PokemonListBloc(getPokemonList: sl()));
-  sl.registerFactory(() => FusionGridBloc(generateFusionGrid: sl()));
-  sl.registerFactory(() => GameSetupBloc(setupGamePath: sl()));
-  sl.registerFactory(() => SettingsBloc());
+  instance.registerFactory(() => PokemonListBloc(getPokemonList: instance()));
+  instance.registerFactory(() => FusionGridBloc(generateFusionGrid: instance()));
+  instance.registerFactory(() => GameSetupBloc(setupGamePath: instance()));
+  instance.registerFactory(() => SettingsBloc());
 }

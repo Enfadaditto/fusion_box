@@ -708,7 +708,7 @@ class _SpriteVariantPickerSheetState extends State<_SpriteVariantPickerSheet> {
     setState(() {
       _isLoading = true;
     });
-    final repo = sl<SpriteRepository>();
+    final repo = instance<SpriteRepository>();
     List<SpriteData> variants = [];
     try {
       variants = await repo.getAllSpriteVariants(widget.headId, widget.bodyId);

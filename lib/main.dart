@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:fusion_box/injection_container.dart' as di;
+import 'package:fusion_box/injection_container.dart' as dependency_injection;
 import 'package:fusion_box/presentation/pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Enforce portrait-only orientation globally
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
 
-  // Initialize dependency injection
-  await di.init();
+  await dependency_injection.init();
 
   runApp(const FusionBoxApp());
 }

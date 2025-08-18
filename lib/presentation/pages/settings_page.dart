@@ -21,10 +21,10 @@ class SettingsPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => sl<GameSetupBloc>()..add(CheckGamePath()),
+          create: (context) => instance<GameSetupBloc>()..add(CheckGamePath()),
         ),
         BlocProvider(
-          create: (context) => sl<SettingsBloc>()..add(LoadSettings()),
+          create: (context) => instance<SettingsBloc>()..add(LoadSettings()),
         ),
       ],
       child: Scaffold(

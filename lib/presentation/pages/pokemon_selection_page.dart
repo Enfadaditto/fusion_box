@@ -139,14 +139,14 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => sl<PokemonListBloc>()..add(LoadPokemonList()),
+          create: (context) => instance<PokemonListBloc>()..add(LoadPokemonList()),
         ),
-        BlocProvider(create: (context) => sl<FusionGridBloc>()),
+        BlocProvider(create: (context) => instance<FusionGridBloc>()),
         BlocProvider(
-          create: (context) => sl<GameSetupBloc>()..add(CheckGamePath()),
+          create: (context) => instance<GameSetupBloc>()..add(CheckGamePath()),
         ),
         BlocProvider(
-          create: (context) => sl<SettingsBloc>()..add(LoadSettings()),
+          create: (context) => instance<SettingsBloc>()..add(LoadSettings()),
         ),
       ],
       child: MultiBlocListener(
@@ -712,7 +712,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                               height: 48,
                                               child: ElevatedButton.icon(
                                                 onPressed: () {
-                                                  final fusionGridBloc = sl<FusionGridBloc>();
+                                                  final fusionGridBloc = instance<FusionGridBloc>();
                                                   final settingsBloc = context.read<SettingsBloc>();
                                                   Navigator.of(context).push(
                                                     PageRouteBuilder(
@@ -1438,7 +1438,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                           height: 48,
                                           child: ElevatedButton.icon(
                                             onPressed: () {
-                                              final fusionGridBloc = sl<FusionGridBloc>();
+                                              final fusionGridBloc = instance<FusionGridBloc>();
                                               final settingsBloc = context.read<SettingsBloc>();
 
                                               Navigator.of(context).push(

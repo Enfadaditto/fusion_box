@@ -31,7 +31,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
   void dispose() {
     // Limpiar memo efímero de variantes al salir de la página
     try {
-      sl<SpriteRepository>().clearEphemeralVariantCache();
+      instance<SpriteRepository>().clearEphemeralVariantCache();
     } catch (_) {}
     _transformationController.dispose();
     super.dispose();

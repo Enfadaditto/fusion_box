@@ -126,7 +126,7 @@ class GenerateFusionGrid {
 
     // Prefetch de todas las filas al inicio para dar tiempo a completar
     try {
-      final downloader = sl<SpriteDownloadService>();
+      final downloader = instance<SpriteDownloadService>();
       for (int i = 0; i < basicGrid.length; i++) {
         final rowHeadId = (i == 0
             ? basicGrid[i][1]!.headPokemon.pokedexNumber
@@ -165,7 +165,7 @@ class GenerateFusionGrid {
                 : basicGrid[i][0]!.headPokemon.pokedexNumber);
         if (spritesheetPath != null && !prefetchedHeadIds.contains(rowHeadId)) {
           prefetchedHeadIds.add(rowHeadId);
-          final downloader = sl<SpriteDownloadService>();
+          final downloader = instance<SpriteDownloadService>();
           unawaited(
             downloader.downloadAllVariants(
               headId: rowHeadId,

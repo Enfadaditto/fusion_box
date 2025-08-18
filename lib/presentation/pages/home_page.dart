@@ -12,7 +12,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => sl<GameSetupBloc>()..add(CheckGamePath()),
+      create: (context) => instance<GameSetupBloc>()..add(CheckGamePath()),
       child: BlocListener<GameSetupBloc, GameSetupState>(
         listener: (context, state) {
           // Solo mostrar mensaje cuando se configura por primera vez, no en verificaciones
