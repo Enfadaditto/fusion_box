@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SavedBoxesService {
   static const String _key = 'saved_boxes_v1';
 
-  /// Returns a list of saved boxes as maps: { 'name': String, 'ids': List<int> }
   static Future<List<Map<String, dynamic>>> getAllBoxes() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);

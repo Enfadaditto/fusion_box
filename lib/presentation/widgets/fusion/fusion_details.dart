@@ -495,7 +495,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Types: ' + widget.pokemon!.types.join(' / '),
+                  'Types: ${widget.pokemon!.types.join(' / ')}',
                   style: const TextStyle(fontSize: 14, color: Colors.white70),
                 ),
               ],

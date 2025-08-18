@@ -60,7 +60,7 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
     final currentState = state;
     if (currentState is! FusionGridLoaded) return;
 
-    List<List<Fusion?>> _mapGrid(List<List<Fusion?>> grid) {
+    List<List<Fusion?>> mapGrid(List<List<Fusion?>> grid) {
       final newGrid = <List<Fusion?>>[];
       for (final row in grid) {
         final newRow = <Fusion?>[];
@@ -87,8 +87,8 @@ class FusionGridBloc extends Bloc<FusionGridEvent, FusionGridState> {
       return newGrid;
     }
 
-    final updatedBase = _mapGrid(currentState.baseFusionGrid);
-    final updatedGrid = _mapGrid(currentState.fusionGrid);
+    final updatedBase = mapGrid(currentState.baseFusionGrid);
+    final updatedGrid = mapGrid(currentState.fusionGrid);
 
     emit(currentState.copyWith(
       baseFusionGrid: updatedBase,

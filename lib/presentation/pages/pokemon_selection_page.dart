@@ -24,7 +24,6 @@ import 'package:fusion_box/core/services/saved_boxes_service.dart';
 import 'package:fusion_box/presentation/pages/saved_boxes_page.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
-import 'package:fusion_box/presentation/widgets/common/portrait_lock.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
   const PokemonSelectionPage({super.key});
@@ -137,8 +136,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
 
   @override
   Widget build(BuildContext context) {
-    return PortraitLock(
-      child: MultiBlocProvider(
+    return MultiBlocProvider(
       providers: [
         BlocProvider(
           create: (context) => sl<PokemonListBloc>()..add(LoadPokemonList()),
@@ -1694,7 +1692,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
           bottomNavigationBar: const SizedBox.shrink(),
         ),
       ),
-    ),
   );
   }
 }
