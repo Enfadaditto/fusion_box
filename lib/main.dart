@@ -64,28 +64,7 @@ class FusionBoxApp extends StatelessWidget {
       ),
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
-        if (!kDebugMode) return child ?? const SizedBox.shrink();
-        return Stack(
-          children: [
-            if (child != null) child,
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton.extended(
-                onPressed: () {
-                  dependency_injection.instance<LoggerService>().logError(
-                    Exception('Manual test error via LoggerService'),
-                    StackTrace.current,
-                  );
-                },
-                icon: const Icon(Icons.bug_report),
-                label: const Text('Test Crashlytics'),
-              ),
-            ),
-          ],
-        );
-      },
+      builder: (context, child) => child ?? const SizedBox.shrink(),
     );
   }
 }

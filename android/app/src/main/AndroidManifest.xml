@@ -8,6 +8,8 @@
     <!-- For Android 11+ (API 30+) - Required for full external storage access -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
                      tools:ignore="ScopedStorage" />
+    <!-- Internet access required for downloading sprites and icons in release builds -->
+    <uses-permission android:name="android.permission.INTERNET" />
     
     <application
         android:label="Fusion Box"
