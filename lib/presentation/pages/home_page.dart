@@ -15,7 +15,6 @@ class HomePage extends StatelessWidget {
       create: (context) => instance<GameSetupBloc>()..add(CheckGamePath()),
       child: BlocListener<GameSetupBloc, GameSetupState>(
         listener: (context, state) {
-          // Solo mostrar mensaje cuando se configura por primera vez, no en verificaciones
           if (state is GamePathSet) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

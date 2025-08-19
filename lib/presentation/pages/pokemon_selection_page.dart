@@ -24,6 +24,7 @@ import 'package:fusion_box/core/services/saved_boxes_service.dart';
 import 'package:fusion_box/presentation/pages/saved_boxes_page.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
 
 class PokemonSelectionPage extends StatefulWidget {
   const PokemonSelectionPage({super.key});
@@ -41,7 +42,6 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _opacityAnimation;
   final TextEditingController _searchController = TextEditingController();
-  // Ability filter state handled by _AbilityFilter widget
   bool _showSearchFilters = false;
 
   @override
@@ -1862,7 +1862,13 @@ class _MovesFilterState extends State<_MovesFilter> {
         _allMoves = moves;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('PokemonSelectionPage: failed to load all moves: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _allMoves = const [];

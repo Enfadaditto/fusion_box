@@ -14,6 +14,7 @@ import 'package:fusion_box/core/services/preferred_sprite_service.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/core/services/sprite_download_service.dart';
 import 'package:fusion_box/core/services/variants_cache_service.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
 
 // Clase para pasar parámetros al isolate
 class FusionGridParams {
@@ -112,7 +113,13 @@ class GenerateFusionGrid {
       final gridWithSprites = await _loadAllSprites(basicGrid);
 
       return gridWithSprites;
-    } catch (e) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('GenerateFusionGrid.call failed: $e'),
+          s,
+        );
+      } catch (_) {}
       rethrow;
     }
   }
@@ -145,7 +152,14 @@ class GenerateFusionGrid {
           }
         }
       }
-    } catch (_) {}
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('GenerateFusionGrid._loadAllSprites prefetch failed: $e'),
+          s,
+        );
+      } catch (_) {}
+    }
 
     for (int i = 0; i < basicGrid.length; i++) {
       final row = <Fusion?>[];
@@ -174,7 +188,14 @@ class GenerateFusionGrid {
             ),
           );
         }
-      } catch (_) {}
+      } catch (e, s) {
+        try {
+          instance.get<LoggerService>().logError(
+            Exception('GenerateFusionGrid._loadAllSprites row prefetch failed: $e'),
+            s,
+          );
+        } catch (_) {}
+      }
       if (spritesheetPath != null) {
         final spriteSheet = File(spritesheetPath);
 
@@ -246,7 +267,14 @@ class GenerateFusionGrid {
               fusion.headPokemon,
               fusion.bodyPokemon,
             );
-          } catch (_) {}
+          } catch (e, s) {
+            try {
+              instance.get<LoggerService>().logError(
+                Exception('GenerateFusionGrid._loadAllSprites stats calc failed: $e'),
+                s,
+              );
+            } catch (_) {}
+          }
 
           final fusionWithSprite = Fusion(
             headPokemon: fusion.headPokemon,

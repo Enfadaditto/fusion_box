@@ -8,17 +8,20 @@ import 'package:fusion_box/data/datasources/local/game_local_datasource.dart';
 import 'package:fusion_box/core/services/sprite_download_service.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
  
 
 class FusionCalculator {
   final SpriteParser spriteParser;
   final GameLocalDataSource gameLocalDataSource;
   final SpriteDownloadService spriteDownloadService;
+  final LoggerService logger;
 
   FusionCalculator({
     required this.spriteParser,
     required this.gameLocalDataSource,
     required this.spriteDownloadService,
+    required this.logger,
   });
 
   Future<List<SpriteData>> getFusion(int headId, int bodyId) async {
@@ -48,7 +51,11 @@ class FusionCalculator {
           );
 
           sprites.addAll(relevantSprites);
-        } catch (e) {
+        } catch (e, s) {
+          await logger.logError(
+            Exception('parseSpritesheetToSprites failed for headId=$headId bodyId=$bodyId variant=$variant path=$spriteSheetPath error=$e'),
+            s,
+          );
           continue;
         }
       }
@@ -56,10 +63,12 @@ class FusionCalculator {
       // No actualizar caché de variantes
 
       return sprites;
-    } catch (e) {
-      throw FusionCalculationException(
-        'Failed to calculate fusion: $headId-$bodyId: $e',
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getFusion failed for headId=$headId bodyId=$bodyId error=$e'),
+        s,
       );
+      throw FusionCalculationException('Failed to calculate fusion: $headId-$bodyId: $e');
     }
   }
 
@@ -163,10 +172,12 @@ class FusionCalculator {
     int bodyId, {
     String variant = '',
   }) async {
+    String? debugSpritesheetPath;
     try {
       final gameBasePath = await _getGameBasePath();
       final basePath = _buildSpritePath(gameBasePath, headId);
       final spritesheetPath = _buildFullSpritePath(basePath, variant);
+      debugSpritesheetPath = spritesheetPath;
 
       // Intentar descargar el spritesheet si no existe
       await _tryDownloadSpritesheet(headId, spritesheetPath, variant);
@@ -178,7 +189,11 @@ class FusionCalculator {
       );
 
       return sprite;
-    } catch (e) {
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getSpecificFusionSprite failed for headId=$headId bodyId=$bodyId variant=$variant path=${debugSpritesheetPath ?? "<unknown>"} error=$e'),
+        s,
+      );
       return null;
     }
   }
@@ -199,7 +214,11 @@ class FusionCalculator {
       );
 
       return sprite;
-    } catch (e) {
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getSpecificFusionSpriteFromSpritesheet failed for headId=$headId bodyId=$bodyId variant=$variant path=${spritesheetPath} error=$e'),
+        s,
+      );
       return null;
     }
   }
@@ -279,7 +298,11 @@ class FusionCalculator {
       }
 
       return null;
-    } catch (e) {
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getAutogenSprite failed for headId=$headId bodyId=$bodyId error=$e'),
+        s,
+      );
       return null;
     }
   }
@@ -320,8 +343,11 @@ class FusionCalculator {
           );
         }
       }
-    } catch (e) {
-      // Fallar silenciosamente en la descarga - no afecta el funcionamiento principal
+    } catch (e, s) {
+      await logger.logError(
+        Exception('_tryDownloadSpritesheet failed for headId=$headId variant=$variant path=$spritesheetPath error=$e'),
+        s,
+      );
     }
   }
 }

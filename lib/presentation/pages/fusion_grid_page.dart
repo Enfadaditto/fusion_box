@@ -10,6 +10,7 @@ import 'package:fusion_box/presentation/widgets/fusion/fusion_details_dialog.dar
 import 'package:fusion_box/presentation/pages/fusions_comparator.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
 
 class FusionGridPage extends StatefulWidget {
   const FusionGridPage({super.key});
@@ -32,7 +33,14 @@ class _FusionGridPageState extends State<FusionGridPage> {
     // Limpiar memo efímero de variantes al salir de la página
     try {
       instance<SpriteRepository>().clearEphemeralVariantCache();
-    } catch (_) {}
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionGridPage.dispose: failed to clear cache: $e'),
+          s,
+        );
+      } catch (_) {}
+    }
     _transformationController.dispose();
     super.dispose();
   }

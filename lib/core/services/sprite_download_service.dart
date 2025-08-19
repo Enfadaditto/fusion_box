@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fusion_box/config/app_config.dart';
 import 'package:fusion_box/core/services/variants_cache_service.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
 
 enum SpriteType { custom, base }
 
@@ -10,52 +11,38 @@ class SpriteDownloadService {
   static const String _userAgent = 'FusionBox/${AppConfig.appVersion}';
 
   final SharedPreferences _prefs;
+  final LoggerService _logger;
 
-  SpriteDownloadService({required SharedPreferences preferences})
-    : _prefs = preferences;
+  SpriteDownloadService({required SharedPreferences preferences, required LoggerService logger})
+    : _prefs = preferences,
+      _logger = logger;
 
-  /// Check if downloads are enabled by user preference
-  bool get isDownloadEnabled {
-    return _prefs.getBool(AppConfig.downloadEnabledKey) ?? true;
-  }
-
-  /// Enable or disable sprite downloads
-  Future<void> setDownloadEnabled(bool enabled) async {
-    await _prefs.setBool(AppConfig.downloadEnabledKey, enabled);
-  }
-
-  /// Download a sprite if it doesn't exist locally and conditions are met
   Future<bool> downloadSpriteIfNeeded({
     required int headId,
     required String localSpritePath,
     String variant = '',
     SpriteType type = SpriteType.custom,
   }) async {
-    // Check if downloads are enabled
-    if (!isDownloadEnabled) {
-      return false;
-    }
-
-    // Check if file already exists
     final file = File(localSpritePath);
     if (await file.exists()) {
-      return true; // Already exists, no need to download
+      return true;
     }
 
     try {
-      // Build download URL
       final url = _buildDownloadUrl(headId, variant, type);
 
-      // Download the sprite
       final success = await _downloadSprite(url, localSpritePath);
 
       return success;
-    } catch (e) {
+    } catch (e, s) {
+      await _logger.logError(
+        Exception('downloadSpriteIfNeeded failed: headId=$headId variant="$variant" type=$type path=$localSpritePath error=$e'),
+        s,
+      );
       return false;
     }
   }
 
-  /// Download all available variants for a head ID until 404 is found
   Future<List<String>> downloadAllVariants({
     required int headId,
     required String baseLocalPath,
@@ -63,7 +50,6 @@ class SpriteDownloadService {
   }) async {
     final downloadedVariants = <String>[];
 
-    // Try main sprite first (no variant)
     final mainPath = baseLocalPath.replaceAll('.png', '.png');
     final mainSuccess = await downloadSpriteIfNeeded(
       headId: headId,
@@ -76,7 +62,6 @@ class SpriteDownloadService {
       downloadedVariants.add('');
     }
 
-    // Build candidate variants: letters a-z and two-letter combos aa-zz
     final letters = List<String>.generate(26, (i) => String.fromCharCode('a'.codeUnitAt(0) + i));
     final twoLetters = <String>[];
     for (int i = 0; i < 26; i++) {
@@ -84,14 +69,11 @@ class SpriteDownloadService {
         twoLetters.add('${String.fromCharCode('a'.codeUnitAt(0) + i)}${String.fromCharCode('a'.codeUnitAt(0) + j)}');
       }
     }
-    // Note: combined list not needed since we run in two phases
 
-    // Phase 1: single-letter variants a..z
     for (final variant in letters) {
       final variantPath = baseLocalPath.replaceAll('.png', '$variant.png');
       final file = File(variantPath);
 
-      // Skip if already exists
       if (await file.exists()) {
         downloadedVariants.add(variant);
         continue;
@@ -108,14 +90,16 @@ class SpriteDownloadService {
         if (success) {
           downloadedVariants.add(variant);
         }
-      } catch (e) {
-        // continue
+      } catch (e, s) {
+        await _logger.logError(
+          Exception('downloadAllVariants(letter) failed: headId=$headId variant="$variant" path=$variantPath error=$e'),
+          s,
+        );
       }
     }
 
-    // Phase 2: two-letter variants aa..zz (with early stop on many misses)
     int misses = 0;
-    const int maxConsecutiveMisses = 40; // heuristic: stop after many 404s
+    const int maxConsecutiveMisses = 40;
     for (final variant in twoLetters) {
       final variantPath = baseLocalPath.replaceAll('.png', '$variant.png');
       final file = File(variantPath);
@@ -138,21 +122,22 @@ class SpriteDownloadService {
           downloadedVariants.add(variant);
           misses = 0;
         }
-      } catch (e) {
-        // continue
+      } catch (e, s) {
+        await _logger.logError(
+          Exception('downloadAllVariants(twoLetters) failed: headId=$headId variant="$variant" path=$variantPath error=$e'),
+          s,
+        );
       }
 
       if (!downloadedVariants.contains(variant)) {
         misses++;
         if (misses >= maxConsecutiveMisses) {
-          break; // end of likely available space
+          break;
         }
-        // small delay to avoid hammering server
         await Future.delayed(const Duration(milliseconds: 30));
       }
     }
 
-    // Update cached variants for this headId
     if (downloadedVariants.isNotEmpty) {
       final existing = await VariantsCacheService.getCachedVariants(headId) ?? const <String>[];
       final combined = <String>{...existing, ...downloadedVariants}.toList();
@@ -162,7 +147,6 @@ class SpriteDownloadService {
     return downloadedVariants;
   }
 
-  /// Build the download URL based on sprite type and parameters
   String _buildDownloadUrl(int headId, String variant, SpriteType type) {
     switch (type) {
       case SpriteType.custom:
@@ -172,7 +156,6 @@ class SpriteDownloadService {
     }
   }
 
-  /// Download a sprite from the given URL to the destination path
   Future<bool> _downloadSprite(
     String url,
     String destinationPath, {
@@ -190,38 +173,36 @@ class SpriteDownloadService {
           .timeout(const Duration(seconds: AppConfig.downloadTimeoutSeconds));
 
       if (response.statusCode == 200) {
-        // Verify it's actually an image
         if (!_isValidImageResponse(response)) {
           return false;
         }
 
-        // Create directory if it doesn't exist
         final file = File(destinationPath);
         await file.parent.create(recursive: true);
 
-        // Write the image data
         await file.writeAsBytes(response.bodyBytes);
         return true;
       }
 
-      // If checking for 404 specifically, return false for any non-200 status
       if (checkStatus404 && response.statusCode == 404) {
         return false;
       }
 
       return false;
-    } catch (e) {
+    } catch (e, s) {
+      await _logger.logError(
+        Exception('download _downloadSprite failed: url=$url dest=$destinationPath error=$e'),
+        s,
+      );
       return false;
     }
   }
 
-  /// Verify that the HTTP response contains valid image data
   bool _isValidImageResponse(http.Response response) {
     final contentType = response.headers['content-type'] ?? '';
     return contentType.startsWith('image/') && response.bodyBytes.isNotEmpty;
   }
 
-  /// Get list of downloaded sprites
   List<String> getDownloadedSprites() {
     return _prefs.getStringList(AppConfig.downloadedSpritesLogKey) ?? [];
   }

@@ -4,6 +4,8 @@ import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
 import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_stats_view.dart';
+import 'package:fusion_box/injection_container.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
 
 class FusionCompareCardMedium extends StatefulWidget {
   final Fusion fusion;
@@ -53,7 +55,13 @@ class _FusionCompareCardMediumState extends State<FusionCompareCardMedium> {
         _stats = s;
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionCompareCardMedium: stats load failed for ${widget.fusion.fusionId}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -157,7 +165,13 @@ class _FusionCompareCardSmallState extends State<FusionCompareCardSmall> {
         _stats = s;
         _isLoading = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionCompareCardSmall: stats load failed for ${widget.fusion.fusionId}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _isLoading = false;

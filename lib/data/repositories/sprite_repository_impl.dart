@@ -3,17 +3,19 @@ import 'package:fusion_box/data/parsers/fusion_calculator.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
 import 'package:image/image.dart' as img;
+import 'package:fusion_box/core/services/logger_service.dart';
  
 
 class SpriteRepositoryImpl implements SpriteRepository {
   final FusionCalculator fusionCalculator;
+  final LoggerService logger;
   
   // Simple in-memory cache to avoid re-cropping sprites between grid regenerations
   final Map<String, SpriteData> _spriteCache = {};
   // Ephemeral cache of available variants per headId for the current page session
   final Map<int, List<String>> _headIdToVariants = {};
 
-  SpriteRepositoryImpl({required this.fusionCalculator});
+  SpriteRepositoryImpl({required this.fusionCalculator, required this.logger});
 
   String _cacheKey(int headId, int bodyId, String variant) {
     return '$headId-$bodyId-$variant';
@@ -23,7 +25,11 @@ class SpriteRepositoryImpl implements SpriteRepository {
   Future<String?> getSpritesheetPath(int headId) async {
     try {
       return fusionCalculator.getFullSpritesheetPath(headId);
-    } catch (e) {
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getSpritesheetPath failed for headId=$headId error=$e'),
+        s,
+      );
       return null;
     }
   }
@@ -32,7 +38,11 @@ class SpriteRepositoryImpl implements SpriteRepository {
   Future<List<SpriteData>> getFusionSprites(int headId, int bodyId) async {
     try {
       return await fusionCalculator.getFusion(headId, bodyId);
-    } catch (e) {
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getFusionSprites failed for headId=$headId bodyId=$bodyId error=$e'),
+        s,
+      );
       throw SpriteNotFoundException('Failed to get fusion sprites: $e');
     }
   }
@@ -57,7 +67,11 @@ class SpriteRepositoryImpl implements SpriteRepository {
       final variants = sprites.map((s) => s.variant).toSet().toList();
       _headIdToVariants[headId] = variants;
       return _headIdToVariants[headId]!;
-    } catch (e) {
+    } catch (e, s) {
+      await logger.logError(
+        Exception('getAvailableVariants failed for headId=$headId bodyId=$bodyId error=$e'),
+        s,
+      );
       return [];
     }
   }

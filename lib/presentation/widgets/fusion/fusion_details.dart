@@ -14,6 +14,7 @@ import 'package:fusion_box/core/services/preferred_sprite_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
+import 'package:fusion_box/core/services/logger_service.dart';
 
 class FusionDetailsContent extends StatefulWidget {
   final Fusion? fusion;
@@ -152,7 +153,13 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           _isLoadingStats = false;
         });
       }
-    } catch (e) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to compute stats for ${widget.fusion?.fusionId}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _statsError = e.toString();
@@ -174,7 +181,13 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         _abilities = combined;
         _isLoadingAbilities = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to load abilities for fusion ${widget.fusion?.fusionId}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _abilities = const {};
@@ -192,7 +205,13 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         _abilities = list.toSet();
         _isLoadingAbilities = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to load abilities for pokemon ${widget.pokemon?.pokedexNumber}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _abilities = const {};
@@ -210,7 +229,13 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         _moves = list;
         _isLoadingMoves = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to load moves for pokemon ${widget.pokemon?.pokedexNumber}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _moves = const [];
@@ -228,7 +253,13 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         _fusionStats = stats;
         _isLoadingStats = false;
       });
-    } catch (e) {
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to load pokemon stats for ${widget.pokemon?.pokedexNumber}: $e'),
+          s,
+        );
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _statsError = e.toString();

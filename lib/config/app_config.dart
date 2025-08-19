@@ -29,6 +29,5 @@ class AppConfig {
   static const int downloadTimeoutSeconds = 30;
 
   // Download settings keys for SharedPreferences
-  static const String downloadEnabledKey = 'sprite_download_enabled';
   static const String downloadedSpritesLogKey = 'downloaded_sprites_log';
 }
