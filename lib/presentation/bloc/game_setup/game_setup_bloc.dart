@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fusion_box/domain/usecases/setup_game_path.dart';
+import 'package:fusion_box/core/services/permission_service.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_event.dart';
 import 'package:fusion_box/presentation/bloc/game_setup/game_setup_state.dart';
 
@@ -10,6 +11,7 @@ class GameSetupBloc extends Bloc<GameSetupEvent, GameSetupState> {
   GameSetupBloc({required this.setupGamePath}) : super(GameSetupInitial()) {
     on<CheckGamePath>(_onCheckGamePath);
     on<SelectGamePath>(_onSelectGamePath);
+    on<RequestStoragePermissions>(_onRequestStoragePermissions);
     on<SetGamePath>(_onSetGamePath);
     on<ValidateGamePath>(_onValidateGamePath);
     on<ClearGamePath>(_onClearGamePath);
@@ -43,6 +45,15 @@ class GameSetupBloc extends Bloc<GameSetupEvent, GameSetupState> {
     Emitter<GameSetupState> emit,
   ) async {
     try {
+      // First check if we have permissions
+      final hasPermissions = await PermissionService.hasStoragePermissions();
+
+      if (!hasPermissions) {
+        // Request permissions first
+        add(RequestStoragePermissions());
+        return;
+      }
+
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 
       if (selectedDirectory != null) {
@@ -50,6 +61,36 @@ class GameSetupBloc extends Bloc<GameSetupEvent, GameSetupState> {
       }
     } catch (e) {
       emit(GameSetupError('Failed to select directory: $e'));
+    }
+  }
+
+  Future<void> _onRequestStoragePermissions(
+    RequestStoragePermissions event,
+    Emitter<GameSetupState> emit,
+  ) async {
+    emit(StoragePermissionRequesting());
+
+    try {
+      final granted = await PermissionService.requestStoragePermissions();
+
+      if (granted) {
+        emit(StoragePermissionGranted());
+        // After permissions are granted, proceed with directory selection
+        String? selectedDirectory =
+            await FilePicker.platform.getDirectoryPath();
+
+        if (selectedDirectory != null) {
+          add(ValidateGamePath(selectedDirectory));
+        }
+      } else {
+        emit(
+          StoragePermissionDenied(
+            'Storage permissions are required to access game files. Please grant permissions in settings.',
+          ),
+        );
+      }
+    } catch (e) {
+      emit(StoragePermissionDenied('Failed to request permissions: $e'));
     }
   }
 

@@ -49,12 +49,11 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
     }).toList();
   }
 
-  /// Lista básica de Pokemon para usar cuando no hay archivos de juego disponibles
+  // DEPRECATED: Use pokemon_full_list.json instead -> This is a fallback for when the json is missing.
   List<PokemonModel> _createBasicPokemonList() {
     final basicPokemon = <PokemonModel>[];
 
     final pokemonDatabase = {
-      // Generation I (1-151) - Order matches FusionDex.org
       1: {
         'name': 'Bulbasaur',
         'types': ['Grass', 'Poison'],
@@ -659,8 +658,6 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'name': 'Mew',
         'types': ['Psychic'],
       },
-
-      // Generation II (152-251) - Order matches FusionDex.org
       152: {
         'name': 'Chikorita',
         'types': ['Grass'],
@@ -1393,7 +1390,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       334: {
         'name': 'Flygon',
-        'types': ['Dragon', 'Ground'],
+        'types': ['Ground', 'Dragon'],
       },
       335: {
         'name': 'Milotic',
@@ -1616,7 +1613,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'types': ['Electric'],
       },
       390: {
-        'name': 'Aaron',
+        'name': 'Aron',
         'types': ['Steel', 'Rock'],
       },
       391: {
@@ -1821,7 +1818,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       441: {
         'name': 'Noivern',
-        'types': ['Dragon', 'Flying'],
+        'types': ['Flying', 'Dragon'],
       },
       442: {
         'name': 'Swablu',
@@ -1892,7 +1889,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'types': ['Grass', 'Dark'],
       },
       459: {
-        'name': 'Sandyghast',
+        'name': 'Sandygast',
         'types': ['Ground', 'Ghost'],
       },
       460: {
@@ -1920,11 +1917,11 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
         'types': ['Rock'],
       },
       466: {
-        'name': 'Meloeta Aria',
+        'name': 'Meloetta Aria',
         'types': ['Normal', 'Psychic'],
       },
       467: {
-        'name': 'Meloeta Pirouette',
+        'name': 'Meloetta Pirouette',
         'types': ['Normal', 'Fighting'],
       },
       468: {
@@ -2062,263 +2059,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       501: {
         'name': 'Luvdisc',
         'types': ['Water'],
-      },
-      // 502: {
-      //   'name': 'Poochyena',
-      //   'types': ['Dark'],
-      // },
-      // 503: {
-      //   'name': 'Mightyena',
-      //   'types': ['Dark'],
-      // },
-      // 504: {
-      //   'name': 'Zigzagoon',
-      //   'types': ['Normal'],
-      // },
-      // 505: {
-      //   'name': 'Linoone',
-      //   'types': ['Normal'],
-      // },
-      // 506: {
-      //   'name': 'Wurmple',
-      //   'types': ['Bug'],
-      // },
-      // 507: {
-      //   'name': 'Silcoon',
-      //   'types': ['Bug'],
-      // },
-      // 508: {
-      //   'name': 'Beautifly',
-      //   'types': ['Bug', 'Flying'],
-      // },
-      // 509: {
-      //   'name': 'Cascoon',
-      //   'types': ['Bug'],
-      // },
-      // 510: {
-      //   'name': 'Dustox',
-      //   'types': ['Poison', 'Bug'],
-      // },
-      // 511: {
-      //   'name': 'Seedot',
-      //   'types': ['Grass'],
-      // },
-      // 512: {
-      //   'name': 'Nuzleaf',
-      //   'types': ['Grass', 'Dark'],
-      // },
-      // 513: {
-      //   'name': 'Shiftry',
-      //   'types': ['Grass', 'Dark'],
-      // },
-      // 514: {
-      //   'name': 'Taillow',
-      //   'types': ['Normal', 'Flying'],
-      // },
-      // 515: {
-      //   'name': 'Swellow',
-      //   'types': ['Normal', 'Flying', 'Dark'],
-      // },
-      // 516: {
-      //   'name': 'Wingull',
-      //   'types': ['Water', 'Flying'],
-      // },
-      // 517: {
-      //   'name': 'Pelipper',
-      //   'types': ['Water', 'Flying'],
-      // },
-      // 518: {
-      //   'name': 'Surskit',
-      //   'types': ['Bug', 'Water'],
-      // },
-      // 519: {
-      //   'name': 'Masquerain',
-      //   'types': ['Bug', 'Flying'],
-      // },
-      // 520: {
-      //   'name': 'Whismur',
-      //   'types': ['Normal'],
-      // },
-      // 521: {
-      //   'name': 'Loudred',
-      //   'types': ['Normal'],
-      // },
-      // 522: {
-      //   'name': 'Exploud',
-      //   'types': ['Normal'],
-      // },
-      // 523: {
-      //   'name': 'Makuhita',
-      //   'types': ['Fighting'],
-      // },
-      // 524: {
-      //   'name': 'Hariyama',
-      //   'types': ['Fighting'],
-      // },
-      // 525: {
-      //   'name': 'Skitty',
-      //   'types': ['Normal'],
-      // },
-      // 526: {
-      //   'name': 'Delcatty',
-      //   'types': ['Normal'],
-      // },
-      // 527: {
-      //   'name': 'Meditite',
-      //   'types': ['Fighting', 'Psychic'],
-      // },
-      // 528: {
-      //   'name': 'Medicham',
-      //   'types': ['Fighting', 'Psychic'],
-      // },
-      // 529: {
-      //   'name': 'Electrike',
-      //   'types': ['Electric'],
-      // },
-      // 530: {
-      //   'name': 'Manectric',
-      //   'types': ['Electric'],
-      // },
-      // 531: {
-      //   'name': 'Plusle',
-      //   'types': ['Electric'],
-      // },
-      // 532: {
-      //   'name': 'Minun',
-      //   'types': ['Electric'],
-      // },
-      // 533: {
-      //   'name': 'Volbeat',
-      //   'types': ['Bug'],
-      // },
-      // 534: {
-      //   'name': 'Illumise',
-      //   'types': ['Bug'],
-      // },
-      // 535: {
-      //   'name': 'Gulpin',
-      //   'types': ['Poison'],
-      // },
-      // 536: {
-      //   'name': 'Swalot',
-      //   'types': ['Poison'],
-      // },
-      // 537: {
-      //   'name': 'Numel',
-      //   'types': ['Fire', 'Ground'],
-      // },
-      // 538: {
-      //   'name': 'Camerupt',
-      //   'types': ['Fire', 'Ground'],
-      // },
-      // 539: {
-      //   'name': 'Spoink',
-      //   'types': ['Psychic'],
-      // },
-      // 540: {
-      //   'name': 'Grumpig',
-      //   'types': ['Psychic'],
-      // },
-      // 541: {
-      //   'name': 'Spinda',
-      //   'types': ['Normal'],
-      // },
-      // 542: {
-      //   'name': 'Zangoose',
-      //   'types': ['Normal'],
-      // },
-      // 543: {
-      //   'name': 'Seviper',
-      //   'types': ['Poison'],
-      // },
-      // 544: {
-      //   'name': 'Lunatone',
-      //   'types': ['Rock', 'Psychic'],
-      // },
-      // 545: {
-      //   'name': 'Solrock',
-      //   'types': ['Rock', 'Psychic'],
-      // },
-      // 546: {
-      //   'name': 'Barboach',
-      //   'types': ['Water', 'Ground'],
-      // },
-      // 547: {
-      //   'name': 'Whiscash',
-      //   'types': ['Water', 'Ground'],
-      // },
-      // 548: {
-      //   'name': 'Corphish',
-      //   'types': ['Water'],
-      // },
-      // 549: {
-      //   'name': 'Crawdaunt',
-      //   'types': ['Water', 'Dark'],
-      // },
-      // 550: {
-      //   'name': 'Baltoy',
-      //   'types': ['Ground', 'Psychic'],
-      // },
-      // 551: {
-      //   'name': 'Claydol',
-      //   'types': ['Ground', 'Psychic'],
-      // },
-      // 552: {
-      //   'name': 'Castform',
-      //   'types': ['Normal'],
-      // },
-      // 553: {
-      //   'name': 'Castform Sunny Form',
-      //   'types': ['Fire'],
-      // },
-      // 554: {
-      //   'name': 'Castform Rainy Form',
-      //   'types': ['Water'],
-      // },
-      // 555: {
-      //   'name': 'Castform Snowy Form',
-      //   'types': ['Ice'],
-      // },
-      // 556: {
-      //   'name': 'Tropius',
-      //   'types': ['Grass', 'Flying'],
-      // },
-      // 557: {
-      //   'name': 'Chingling',
-      //   'types': ['Psychic'],
-      // },
-      // 558: {
-      //   'name': 'Chimecho',
-      //   'types': ['Psychic'],
-      // },
-      // 559: {
-      //   'name': 'Spheal',
-      //   'types': ['Ice', 'Water'],
-      // },
-      // 560: {
-      //   'name': 'Sealeo',
-      //   'types': ['Ice', 'Water'],
-      // },
-      // 561: {
-      //   'name': 'Walrein',
-      //   'types': ['Ice', 'Water'],
-      // },
-      // 562: {
-      //   'name': 'Clamperl',
-      //   'types': ['Water'],
-      // },
-      // 563: {
-      //   'name': 'Huntail',
-      //   'types': ['Water'],
-      // },
-      // 564: {
-      //   'name': 'Gorebyss',
-      //   'types': ['Water'],
-      // },
-      // 565: {
-      //   'name': 'Relicanth',
-      //   'types': ['Water', 'Rock'],
-      // },
+      }
     };
 
     pokemonDatabase.forEach((number, data) {
@@ -2332,5 +2073,14 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
 
     basicPokemon.sort((a, b) => a.pokedexNumber.compareTo(b.pokedexNumber));
     return basicPokemon;
+  }
+
+  /// Exposes the embedded basic Pokémon list without any filesystem access.
+  ///
+  /// This is intended for tooling/scripts that need to iterate over the
+  /// canonical local list to pre-generate resources (e.g., base stats JSON)
+  /// without depending on platform-specific services like `path_provider`.
+  List<PokemonModel> getEmbeddedPokemonListForTools() {
+    return _createBasicPokemonList();
   }
 }

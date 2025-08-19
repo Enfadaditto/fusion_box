@@ -3,6 +3,8 @@ import 'dart:typed_data';
 class SpriteData {
   final String spritePath;
   final Uint8List? spriteBytes;
+  // If provided, contains raw RGBA8888 pixels already decoded off the UI isolate
+  final Uint8List? rgbaBytes;
   final int x;
   final int y;
   final int width;
@@ -13,6 +15,7 @@ class SpriteData {
   const SpriteData({
     required this.spritePath,
     this.spriteBytes,
+    this.rgbaBytes,
     required this.x,
     required this.y,
     required this.width,

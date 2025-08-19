@@ -1,8 +1,11 @@
 import 'package:fusion_box/domain/entities/fusion.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/domain/entities/pokemon_stats.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/domain/repositories/pokemon_repository.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
+import 'package:fusion_box/core/services/preferred_sprite_service.dart';
+import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 
 class GetFusion {
   final SpriteRepository spriteRepository;
@@ -22,8 +25,23 @@ class GetFusion {
       final sprites = await spriteRepository.getFusionSprites(headId, bodyId);
       final spritePaths = sprites.map((sprite) => sprite.spritePath).toList();
 
-      // Obtener el sprite específico para esta fusión
-      SpriteData? primarySprite = await spriteRepository.getSpecificSprite(
+      // Intentar respetar la variante preferida del usuario
+      final preferredVariant = await PreferredSpriteService.getPreferredVariant(
+        headId,
+        bodyId,
+      );
+
+      SpriteData? primarySprite;
+      if (preferredVariant != null) {
+        primarySprite = await spriteRepository.getSpecificSprite(
+          headId,
+          bodyId,
+          variant: preferredVariant,
+        );
+      }
+
+      // Si no hay sprite según preferencia, obtener el sprite específico por defecto
+      primarySprite ??= await spriteRepository.getSpecificSprite(
         headId,
         bodyId,
       );
@@ -33,14 +51,22 @@ class GetFusion {
 
       final fusionTypes = _calculateFusionTypes(headPokemon, bodyPokemon);
 
+      // Calcular estadísticas de la fusión
+      PokemonStats? fusionStats;
+      try {
+        final calculator = FusionStatsCalculator();
+        fusionStats = await calculator.getStatsFromFusion(headPokemon, bodyPokemon);
+      } catch (_) { }
+
       return Fusion(
         headPokemon: headPokemon,
         bodyPokemon: bodyPokemon,
         availableSprites: spritePaths,
         types: fusionTypes,
         primarySprite: primarySprite,
+        stats: fusionStats,
       );
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }

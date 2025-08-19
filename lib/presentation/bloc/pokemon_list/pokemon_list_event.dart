@@ -38,3 +38,35 @@ class RemoveSelectedPokemon extends PokemonListEvent {
   @override
   List<Object> get props => [pokemon];
 }
+
+class SortSelectedByName extends PokemonListEvent {}
+
+class SortSelectedByDex extends PokemonListEvent {}
+
+class ReorderSelectedPokemon extends PokemonListEvent {
+  final int oldIndex;
+  final int newIndex;
+
+  const ReorderSelectedPokemon(this.oldIndex, this.newIndex);
+
+  @override
+  List<Object> get props => [oldIndex, newIndex];
+}
+
+class UpdateMovesFilter extends PokemonListEvent {
+  final List<String> moves;
+
+  const UpdateMovesFilter(this.moves);
+
+  @override
+  List<Object> get props => [moves];
+}
+
+class UpdateTypesFilter extends PokemonListEvent {
+  final List<String> types;
+
+  const UpdateTypesFilter(this.types);
+
+  @override
+  List<Object> get props => [types];
+}

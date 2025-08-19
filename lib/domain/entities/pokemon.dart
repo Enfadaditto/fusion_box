@@ -2,7 +2,6 @@ class Pokemon {
   final int pokedexNumber;
   final String name;
   final List<String> types;
-
   const Pokemon({
     required this.pokedexNumber,
     required this.name,

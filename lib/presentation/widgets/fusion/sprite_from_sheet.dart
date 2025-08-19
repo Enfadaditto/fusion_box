@@ -19,8 +19,8 @@ class SpriteFromSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     if (spriteData.spriteBytes == null) {
       return Container(
-        width: width ?? 64,
-        height: height ?? 64,
+        width: width ?? 96,
+        height: height ?? 96,
         color: Colors.grey[300],
         child: const Icon(Icons.image_not_supported),
       );
