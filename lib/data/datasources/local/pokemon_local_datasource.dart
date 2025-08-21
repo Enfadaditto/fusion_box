@@ -1318,7 +1318,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       316: {
         'name': 'Turtwig',
-        'types': ['Poison'],
+        'types': ['Grass'],
       },
       317: {
         'name': 'Grotle',
