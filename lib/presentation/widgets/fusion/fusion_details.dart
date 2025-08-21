@@ -15,6 +15,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:fusion_box/core/services/type_effectiveness_service.dart';
+import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
 
 class FusionDetailsContent extends StatefulWidget {
   final Fusion? fusion;
@@ -44,6 +46,125 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
   List<String>? _moves;
   bool _isLoadingMoves = true;
   SpriteData? _currentSprite;
+
+  void _showDefensiveSchemeForTypes(List<String> types) {
+    final TypeEffectivenessService svc = const TypeEffectivenessService();
+    final Map<double, List<String>> buckets = svc.groupedEffectiveness(types);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        final double width = MediaQuery.of(context).size.width;
+        final double horizontalPadding = 16;
+        const int columns = 3; // fixed columns for consistent chip width
+        final double chipWidth = (width - horizontalPadding * 2 - (columns - 1) * 6) / columns;
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            12,
+            horizontalPadding,
+            MediaQuery.of(context).padding.bottom + 12,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Defensive effectiveness',
+                  style: TextStyle(color: Colors.grey[200], fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Types: ${types.join(' / ')}',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                ..._buildEffectivenessSection('x0', buckets[0.0] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x1/4', buckets[0.25] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x1/2', buckets[0.5] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x1', buckets[1.0] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x2', buckets[2.0] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x4', buckets[4.0] ?? const <String>[], chipWidth),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildEffectivenessSection(String label, List<String> types, double chipWidth) {
+    if (types.isEmpty) return const <Widget>[];
+    return <Widget>[
+      Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 4),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: types
+            .map(
+              (t) => SizedBox(
+                width: chipWidth,
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: PokemonTypeColors.getTypeColor(t),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                  ),
+                  child: Text(
+                    t,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    ];
+  }
+
+  Widget _buildTypeChip(String type) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: PokemonTypeColors.getTypeColor(type),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+      ),
+      child: Text(
+        type,
+        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -525,9 +646,23 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Types: ${widget.pokemon!.types.join(' / ')}',
-                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          widget.pokemon!.types.join(' / '),
+                          style: const TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.help_outline, size: 18, color: Colors.white70),
+                      tooltip: 'Show defensive effectiveness',
+                      onPressed: () => _showDefensiveSchemeForTypes(widget.pokemon!.types),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -588,10 +723,26 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           
           if (widget.fusion != null) ...[
             // Types
-            Text(
-              widget.fusion!.types.join(' / '),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
-              textAlign: TextAlign.center,
+            Row(
+              children: [
+                const SizedBox(width: 48),
+                Expanded(
+                  child: Center(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: widget.fusion!.types
+                          .map((t) => _buildTypeChip(t))
+                          .toList(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.help_outline, size: 18, color: Colors.white70),
+                  tooltip: 'Show defensive effectiveness',
+                  onPressed: () => _showDefensiveSchemeForTypes(widget.fusion!.types),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
           ],
