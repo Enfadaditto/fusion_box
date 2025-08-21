@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_state.dart';
 
 abstract class PokemonListEvent extends Equatable {
   const PokemonListEvent();
@@ -69,4 +70,14 @@ class UpdateTypesFilter extends PokemonListEvent {
 
   @override
   List<Object> get props => [types];
+}
+
+class UpdatePokemonSort extends PokemonListEvent {
+  final PokemonSortKey sortKey;
+  final PokemonSortOrder sortOrder;
+
+  const UpdatePokemonSort({required this.sortKey, required this.sortOrder});
+
+  @override
+  List<Object> get props => [sortKey, sortOrder];
 }

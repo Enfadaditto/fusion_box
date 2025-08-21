@@ -1,6 +1,19 @@
 import 'package:equatable/equatable.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 
+enum PokemonSortKey {
+  none,
+  total,
+  hp,
+  attack,
+  defense,
+  specialAttack,
+  specialDefense,
+  speed,
+}
+
+enum PokemonSortOrder { descending, ascending }
+
 abstract class PokemonListState extends Equatable {
   const PokemonListState();
 
@@ -19,6 +32,8 @@ class PokemonListLoaded extends PokemonListState {
   final String searchQuery;
   final List<String> movesFilter;
   final List<String> typesFilter;
+  final PokemonSortKey sortKey;
+  final PokemonSortOrder sortOrder;
 
   const PokemonListLoaded({
     required this.allPokemon,
@@ -27,6 +42,8 @@ class PokemonListLoaded extends PokemonListState {
     this.searchQuery = '',
     this.movesFilter = const [],
     this.typesFilter = const [],
+    this.sortKey = PokemonSortKey.none,
+    this.sortOrder = PokemonSortOrder.descending,
   });
 
   @override
@@ -37,6 +54,8 @@ class PokemonListLoaded extends PokemonListState {
     searchQuery,
     movesFilter,
     typesFilter,
+    sortKey,
+    sortOrder,
   ];
 
   PokemonListLoaded copyWith({
@@ -46,6 +65,8 @@ class PokemonListLoaded extends PokemonListState {
     String? searchQuery,
     List<String>? movesFilter,
     List<String>? typesFilter,
+    PokemonSortKey? sortKey,
+    PokemonSortOrder? sortOrder,
   }) {
     return PokemonListLoaded(
       allPokemon: allPokemon ?? this.allPokemon,
@@ -54,6 +75,8 @@ class PokemonListLoaded extends PokemonListState {
       searchQuery: searchQuery ?? this.searchQuery,
       movesFilter: movesFilter ?? this.movesFilter,
       typesFilter: typesFilter ?? this.typesFilter,
+      sortKey: sortKey ?? this.sortKey,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 }

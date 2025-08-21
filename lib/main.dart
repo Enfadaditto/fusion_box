@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:fusion_box/config/firebase_options.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:fusion_box/core/services/saved_boxes_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,9 @@ void main() async {
     dependency_injection.instance<LoggerService>().logError(error, stack, fatal: true);
     return true;
   };
+
+  // Initialize default saved boxes on first launch
+  await SavedBoxesService.initializeDefaultsIfNeeded();
 
   runApp(const FusionBoxApp());
 }

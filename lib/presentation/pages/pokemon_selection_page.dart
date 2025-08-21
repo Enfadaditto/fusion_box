@@ -793,6 +793,43 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                   ),
                                                 ),
                                               ],
+                                              const Spacer(),
+                                              PopupMenuButton<PokemonSortKey>(
+                                                tooltip: 'Sort by stat',
+                                                onSelected: (key) {
+                                                  final s = state;
+                                                  PokemonSortKey nextKey = key;
+                                                  PokemonSortOrder nextOrder = PokemonSortOrder.descending;
+                                                  if (s.sortKey == key) {
+                                                    nextOrder = s.sortOrder == PokemonSortOrder.descending
+                                                        ? PokemonSortOrder.ascending
+                                                        : PokemonSortOrder.descending;
+                                                  } else {
+                                                    nextKey = key;
+                                                    nextOrder = PokemonSortOrder.descending;
+                                                  }
+                                                  context.read<PokemonListBloc>().add(
+                                                        UpdatePokemonSort(
+                                                          sortKey: nextKey,
+                                                          sortOrder: nextOrder,
+                                                        ),
+                                                      );
+                                                },
+                                                itemBuilder: (context) => [
+                                                  const PopupMenuItem(value: PokemonSortKey.none, child: Text('None')),
+                                                  const PopupMenuItem(value: PokemonSortKey.total, child: Text('Total')),
+                                                  const PopupMenuItem(value: PokemonSortKey.hp, child: Text('HP')),
+                                                  const PopupMenuItem(value: PokemonSortKey.attack, child: Text('Attack')),
+                                                  const PopupMenuItem(value: PokemonSortKey.defense, child: Text('Defense')),
+                                                  const PopupMenuItem(value: PokemonSortKey.specialAttack, child: Text('Sp. Atk')),
+                                                  const PopupMenuItem(value: PokemonSortKey.specialDefense, child: Text('Sp. Def')),
+                                                  const PopupMenuItem(value: PokemonSortKey.speed, child: Text('Speed')),
+                                                ],
+                                                icon: Icon(
+                                                  Icons.sort,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -1540,6 +1577,43 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                           ),
                                         ),
                                       ],
+                                      const Spacer(),
+                                      PopupMenuButton<PokemonSortKey>(
+                                        tooltip: 'Sort by stat',
+                                        onSelected: (key) {
+                                          final s = state;
+                                          PokemonSortKey nextKey = key;
+                                          PokemonSortOrder nextOrder = PokemonSortOrder.descending;
+                                          if (s.sortKey == key) {
+                                            nextOrder = s.sortOrder == PokemonSortOrder.descending
+                                                ? PokemonSortOrder.ascending
+                                                : PokemonSortOrder.descending;
+                                          } else {
+                                            nextKey = key;
+                                            nextOrder = PokemonSortOrder.descending;
+                                          }
+                                          context.read<PokemonListBloc>().add(
+                                                UpdatePokemonSort(
+                                                  sortKey: nextKey,
+                                                  sortOrder: nextOrder,
+                                                ),
+                                              );
+                                        },
+                                        itemBuilder: (context) => const [
+                                          PopupMenuItem(value: PokemonSortKey.none, child: Text('None')),
+                                          PopupMenuItem(value: PokemonSortKey.total, child: Text('Total')),
+                                          PopupMenuItem(value: PokemonSortKey.hp, child: Text('HP')),
+                                          PopupMenuItem(value: PokemonSortKey.attack, child: Text('Attack')),
+                                          PopupMenuItem(value: PokemonSortKey.defense, child: Text('Defense')),
+                                          PopupMenuItem(value: PokemonSortKey.specialAttack, child: Text('Sp. Atk')),
+                                          PopupMenuItem(value: PokemonSortKey.specialDefense, child: Text('Sp. Def')),
+                                          PopupMenuItem(value: PokemonSortKey.speed, child: Text('Speed')),
+                                        ],
+                                        icon: Icon(
+                                          Icons.sort,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
