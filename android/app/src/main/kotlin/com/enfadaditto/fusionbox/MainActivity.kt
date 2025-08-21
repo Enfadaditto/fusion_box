@@ -1,4 +1,4 @@
-package com.example.fusion_box
+package com.enfadaditto.fusionbox
 
 import io.flutter.embedding.android.FlutterActivity
 

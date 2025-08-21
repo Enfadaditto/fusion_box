@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:883854775572:android:d56acbaad1fbc1d2861e01",
+        "mobilesdk_app_id": "1:883854775572:android:9b77691284e36f0f861e01",
         "android_client_info": {
-          "package_name": "com.example.fusion_box"
+          "package_name": "com.enfadaditto.fusionbox"
         }
       },
       "oauth_client": [],

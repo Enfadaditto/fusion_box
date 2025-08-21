@@ -17,7 +17,10 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -33,7 +36,10 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -46,31 +52,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBHF5DMjRBejo--TDnFt_sQoschIsvcjWs',
-    appId: '1:883854775572:web:0e993bb9f5753a8a861e01',
-    messagingSenderId: '883854775572',
-    projectId: 'fusion-box',
-    authDomain: 'fusion-box.firebaseapp.com',
-    storageBucket: 'fusion-box.firebasestorage.app',
-    measurementId: 'G-RNLQEWTH2R',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDmyQJ0Bz-UPqBMm_-w2_SkZ3gfYH3sR3w',
-    appId: '1:883854775572:android:d56acbaad1fbc1d2861e01',
+    appId: '1:883854775572:android:9b77691284e36f0f861e01',
     messagingSenderId: '883854775572',
     projectId: 'fusion-box',
     storageBucket: 'fusion-box.firebasestorage.app',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBHF5DMjRBejo--TDnFt_sQoschIsvcjWs',
-    appId: '1:883854775572:web:90a236b46bbe8a3b861e01',
-    messagingSenderId: '883854775572',
-    projectId: 'fusion-box',
-    authDomain: 'fusion-box.firebaseapp.com',
-    storageBucket: 'fusion-box.firebasestorage.app',
-    measurementId: 'G-9ZCRVFM97C',
   );
 }
