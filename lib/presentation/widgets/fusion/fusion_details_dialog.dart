@@ -20,10 +20,10 @@ class FusionDetailsDialog extends StatefulWidget {
           'Provide exactly one of fusion or pokemon',
         );
 
-  static void show(BuildContext context, Fusion fusion) {
+  static Future<void> show(BuildContext context, Fusion fusion) {
     // Capture bloc from the caller's context (within provider scope)
     final fusionGridBloc = context.read<FusionGridBloc>();
-    showDialog(
+    return showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) => FusionDetailsDialog(
@@ -33,8 +33,8 @@ class FusionDetailsDialog extends StatefulWidget {
     );
   }
 
-  static void showForPokemon(BuildContext context, Pokemon pokemon) {
-    showDialog(
+  static Future<void> showForPokemon(BuildContext context, Pokemon pokemon) {
+    return showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (context) => FusionDetailsDialog(pokemon: pokemon),

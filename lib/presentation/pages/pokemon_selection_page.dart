@@ -808,6 +808,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                     nextKey = key;
                                                     nextOrder = PokemonSortOrder.descending;
                                                   }
+                                                  FocusScope.of(context).unfocus();
                                                   context.read<PokemonListBloc>().add(
                                                         UpdatePokemonSort(
                                                           sortKey: nextKey,
@@ -874,8 +875,9 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                             onTap: () {
                                               context.read<PokemonListBloc>().add(TogglePokemonSelection(pokemon));
                                             },
-                                            onLongPress: () {
-                                              FusionDetailsDialog.showForPokemon(context, pokemon);
+                                            onLongPress: () async {
+                                              await FusionDetailsDialog.showForPokemon(context, pokemon);
+                                              if (mounted) FocusScope.of(context).unfocus();
                                             },
                                           );
                                         }, childCount: state.filteredPokemon.length),
@@ -1138,6 +1140,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                 ),
                                               ],
                                               onSelected: (value) async {
+                                                FocusScope.of(context).unfocus();
                                                 if (value == 'sort_name') {
                                                   context.read<PokemonListBloc>().add(SortSelectedByName());
                                                 } else if (value == 'sort_dex') {
@@ -1682,9 +1685,10 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                         TogglePokemonSelection(pokemon),
                                       );
                                     },
-                                    onLongPress: () {
+                                    onLongPress: () async {
                                       // Mostrar detalles del Pokemon individual
-                                      FusionDetailsDialog.showForPokemon(context, pokemon);
+                                      await FusionDetailsDialog.showForPokemon(context, pokemon);
+                                      if (mounted) FocusScope.of(context).unfocus();
                                     },
                                   );
                                 }, childCount: state.filteredPokemon.length),
