@@ -66,6 +66,7 @@ class FusionBoxApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      themeMode: ThemeMode.dark,
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
       builder: (context, child) => child ?? const SizedBox.shrink(),

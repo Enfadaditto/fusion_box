@@ -11,6 +11,8 @@ import 'package:fusion_box/presentation/pages/fusions_comparator.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:fusion_box/core/services/my_team_service.dart';
+import 'package:fusion_box/presentation/widgets/fusion/variant_picker_sheet.dart';
 
 class FusionGridPage extends StatefulWidget {
   const FusionGridPage({super.key});
@@ -180,7 +182,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
             return Column(
               children: [
                 Expanded(child: _buildFusionGrid(context, state)),
-                // Botón COMPARE en la parte inferior
+                // Acciones inferiores: solo Compare (>=2). Agregar al equipo se hace desde detalles
                 if (state.selectedFusionIds.length >= 2)
                   Container(
                     width: double.infinity,
@@ -190,57 +192,48 @@ class _FusionGridPageState extends State<FusionGridPage> {
                       16,
                       16 + MediaQuery.of(context).padding.bottom,
                     ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () => _navigateToComparison(context, state),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[700],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _navigateToComparison(context, state),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
-                                'COMPARE',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            child: const Text(
+                              'COMPARE',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          // Indicador de notificación
-                          Positioned(
-                            top: -8,
-                            right: -8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${state.selectedFusionIds.length}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${state.selectedFusionIds.length}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
               ],

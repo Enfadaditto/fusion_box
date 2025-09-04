@@ -1,6 +1,6 @@
 class AppConfig {
   static const String appName = 'Pokemon Fusion Box';
-  static const String appVersion = '1.1.0';
+  static const String appVersion = '1.2.0';
 
   // Game related configurations
   static const String defaultGamePathMessage =

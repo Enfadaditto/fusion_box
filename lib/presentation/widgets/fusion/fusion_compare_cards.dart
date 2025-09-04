@@ -6,6 +6,7 @@ import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 import 'package:fusion_box/presentation/widgets/fusion/fusion_stats_view.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:fusion_box/core/services/my_team_service.dart';
 
 class FusionCompareCardMedium extends StatefulWidget {
   final Fusion fusion;
@@ -89,17 +90,60 @@ class _FusionCompareCardMediumState extends State<FusionCompareCardMedium> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey[600]!),
               ),
-              child: widget.fusion.primarySprite != null
-                  ? SpriteFromSheet(
-                      spriteData: widget.fusion.primarySprite!,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.contain,
-                    )
-                  : Center(child: Text('${widget.fusion.headPokemon.name} + ${widget.fusion.bodyPokemon.name}')),
+              child: Stack(
+                children: [
+                  Center(
+                    child: widget.fusion.primarySprite != null
+                        ? SpriteFromSheet(
+                            spriteData: widget.fusion.primarySprite!,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.contain,
+                          )
+                        : Text('${widget.fusion.headPokemon.name} + ${widget.fusion.bodyPokemon.name}'),
+                  ),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () async {
+                        final headId = widget.fusion.headPokemon.pokedexNumber;
+                        final bodyId = widget.fusion.bodyPokemon.pokedexNumber;
+                        final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
+                        if (!mounted) return;
+                        String message;
+                        switch (result) {
+                          case MyTeamService.resultAdded:
+                            message = 'Added to My Team';
+                            break;
+                          case MyTeamService.resultAlreadyExists:
+                            message = 'Already in My Team';
+                            break;
+                          case MyTeamService.resultTeamFull:
+                            message = 'Team is full (6)';
+                            break;
+                          default:
+                            message = 'Could not add to team';
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(message)),
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(Icons.group_add_outlined, size: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 10),
-            // Stats only (compact)
             if (_isLoading)
               const SizedBox(
                 height: 16,
@@ -214,7 +258,51 @@ class _FusionCompareCardSmallState extends State<FusionCompareCardSmall> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey[600]!),
         ),
-        child: Center(child: content),
+        child: !_showStats
+            ? Stack(
+                children: [
+                  Center(child: content),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () async {
+                        final headId = widget.fusion.headPokemon.pokedexNumber;
+                        final bodyId = widget.fusion.bodyPokemon.pokedexNumber;
+                        final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
+                        if (!mounted) return;
+                        String message;
+                        switch (result) {
+                          case MyTeamService.resultAdded:
+                            message = 'Added to My Team';
+                            break;
+                          case MyTeamService.resultAlreadyExists:
+                            message = 'Already in My Team';
+                            break;
+                          case MyTeamService.resultTeamFull:
+                            message = 'Team is full (6)';
+                            break;
+                          default:
+                            message = 'Could not add to team';
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(message)),
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(Icons.group_add_outlined, size: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Center(child: content),
       ),
     );
   }

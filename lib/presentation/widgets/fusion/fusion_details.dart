@@ -17,6 +17,8 @@ import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart'
 import 'package:fusion_box/core/services/logger_service.dart';
 import 'package:fusion_box/core/services/type_effectiveness_service.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
+import 'package:fusion_box/core/services/my_team_service.dart';
+import 'package:fusion_box/presentation/widgets/fusion/variant_picker_sheet.dart';
 
 class FusionDetailsContent extends StatefulWidget {
   final Fusion? fusion;
@@ -232,21 +234,18 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) {
-        return _SpriteVariantPickerSheet(
-          headId: headId,
-          bodyId: bodyId,
-          initial: _currentSprite ?? widget.fusion!.primarySprite,
-          fusionGridBloc: capturedGridBloc,
-          onSelected: (sel) async {
-            await PreferredSpriteService.setPreferredVariant(headId, bodyId, sel.variant);
-            if (!mounted) return;
-            setState(() {
-              _currentSprite = sel;
-            });
-          },
-        );
-      },
+      builder: (context) => FusionVariantPickerSheet(
+        headId: headId,
+        bodyId: bodyId,
+        initial: _currentSprite ?? widget.fusion!.primarySprite,
+        onSelected: (sel) async {
+          await PreferredSpriteService.setPreferredVariant(headId, bodyId, sel.variant);
+          if (!mounted) return;
+          setState(() {
+            _currentSprite = sel;
+          });
+        },
+      ),
     );
   }
 
@@ -684,38 +683,80 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           ],
           
           if (widget.fusion != null) ...[
-            // Fusion Sprite (tap to choose variant)
-            GestureDetector(
-              onTap: _openSpriteCarousel,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[600]!),
+            // Fusion Sprite with integrated small action button
+            Stack(
+              children: [
+                GestureDetector(
+                  onTap: _openSpriteCarousel,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[600]!),
+                    ),
+                    child: (_currentSprite ?? widget.fusion!.primarySprite) != null
+                        ? SpriteFromSheet(
+                            spriteData: (_currentSprite ?? widget.fusion!.primarySprite)!,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.contain,
+                          )
+                        : Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.purple[100],
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.purple[300]!),
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome,
+                              color: Colors.purple,
+                              size: 40,
+                            ),
+                          ),
+                  ),
                 ),
-                child: (_currentSprite ?? widget.fusion!.primarySprite) != null
-                    ? SpriteFromSheet(
-                        spriteData: (_currentSprite ?? widget.fusion!.primarySprite)!,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.contain,
-                      )
-                    : Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.purple[100],
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.purple[300]!),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          color: Colors.purple,
-                          size: 40,
-                        ),
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      final headId = widget.fusion!.headPokemon.pokedexNumber;
+                      final bodyId = widget.fusion!.bodyPokemon.pokedexNumber;
+                      final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
+                      if (!mounted) return;
+                      String message;
+                      switch (result) {
+                        case MyTeamService.resultAdded:
+                          message = 'Added to My Team';
+                          break;
+                        case MyTeamService.resultAlreadyExists:
+                          message = 'Already in My Team';
+                          break;
+                        case MyTeamService.resultTeamFull:
+                          message = 'Team is full (6)';
+                          break;
+                        default:
+                          message = 'Could not add to team';
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message)),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-              ),
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(Icons.group_add_outlined, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
           
@@ -781,6 +822,8 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           
           // Stats Section
           _buildStatsSection(),
+
+          // Compact action removed from here; now integrated into the sprite area
 
           // Moves section (only for single Pokemon)
           if (widget.fusion == null) ...[

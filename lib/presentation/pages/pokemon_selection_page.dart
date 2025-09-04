@@ -22,6 +22,7 @@ import 'package:fusion_box/core/services/settings_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fusion_box/core/services/saved_boxes_service.dart';
 import 'package:fusion_box/presentation/pages/saved_boxes_page.dart';
+import 'package:fusion_box/presentation/pages/my_team_page.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
@@ -174,6 +175,39 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
         ],
         child: Scaffold(
           appBar: AppBar(
+            leading: Builder(
+              builder: (innerCtx) => PopupMenuButton<String>(
+                tooltip: 'Menu',
+                icon: const Icon(Icons.menu),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'my_team':
+                      final pokemonListBloc = innerCtx.read<PokemonListBloc>();
+                      Navigator.of(innerCtx).push(
+                        MaterialPageRoute(
+                          builder: (context) => BlocProvider.value(
+                            value: pokemonListBloc,
+                            child: const MyTeamPage(),
+                          ),
+                        ),
+                      );
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    value: 'my_team',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.groups_2_outlined, size: 18),
+                        SizedBox(width: 12),
+                        Text('My Team'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             title: const Text('Pokemon Fusion Box'),
             backgroundColor: Theme.of(context).colorScheme.primaryContainer,
             actions: [
