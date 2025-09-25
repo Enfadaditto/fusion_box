@@ -261,6 +261,9 @@ class GenerateFusionGrid {
         }
       }
 
+      // Consultar si se permiten sprites autogenerados
+      final bool useAutogenSprites = await SettingsService.getUseAutogenSprites();
+
       // Procesar todas las columnas de esta fila
       for (int j = 0; j < basicGrid[i].length; j++) {
         final fusion = basicGrid[i][j];
@@ -298,11 +301,19 @@ class GenerateFusionGrid {
             fusion.bodyPokemon.pokedexNumber,
           );
 
-          // Si no hay sprite personalizado, intentar autogenerado
-          finalSprite ??= await getFusion.spriteRepository.getAutogenSprite(
-            fusion.headPokemon.pokedexNumber,
-            fusion.bodyPokemon.pokedexNumber,
-          );
+          // Si no hay sprite personalizado, intentar autogenerado (solo si está habilitado)
+          if (finalSprite == null && useAutogenSprites) {
+            finalSprite = await getFusion.spriteRepository.getAutogenSprite(
+              fusion.headPokemon.pokedexNumber,
+              fusion.bodyPokemon.pokedexNumber,
+            );
+          }
+
+          // Si sigue sin sprite y los autogenerados están deshabilitados, marcar celda como disabled
+          if (finalSprite == null && !useAutogenSprites) {
+            row.add(null);
+            continue;
+          }
 
           // Calcular estadísticas de la fusión
           PokemonStats? fusionStats;

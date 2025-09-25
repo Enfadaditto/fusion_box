@@ -1,17 +1,20 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fusion_box/core/services/settings_notification_service.dart';
+import 'package:fusion_box/core/services/settings_service.dart';
 import 'settings_event.dart';
 import 'settings_state.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   static const String _simpleIconsKey = 'use_simple_icons';
   static const String _axAFusionsKey = 'use_axa_fusions';
+  static const String _autogenSpritesKey = 'use_autogen_sprites';
 
   SettingsBloc() : super(SettingsInitial()) {
     on<LoadSettings>(_onLoadSettings);
     on<ToggleSimpleIcons>(_onToggleSimpleIcons);
     on<ToggleAxAFusions>(_onToggleAxAFusions);
+    on<ToggleAutogenSprites>(_onToggleAutogenSprites);
     on<SettingsChanged>(_onSettingsChanged);
   }
 
@@ -25,11 +28,13 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       final prefs = await SharedPreferences.getInstance();
       final useSimpleIcons = prefs.getBool(_simpleIconsKey) ?? true;
       final useAxAFusions = prefs.getBool(_axAFusionsKey) ?? false;
+      final useAutogenSprites = prefs.getBool(_autogenSpritesKey) ?? true;
 
       emit(
         SettingsLoaded(
           useSimpleIcons: useSimpleIcons,
           useAxAFusions: useAxAFusions,
+          useAutogenSprites: useAutogenSprites,
         ),
       );
 
@@ -52,6 +57,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       final newState = SettingsLoaded(
         useSimpleIcons: event.useSimpleIcons,
         useAxAFusions: currentState.useAxAFusions,
+        useAutogenSprites: currentState.useAutogenSprites,
       );
 
       emit(newState);
@@ -66,6 +72,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         SettingsChanged(
           useSimpleIcons: event.useSimpleIcons,
           useAxAFusions: currentState.useAxAFusions,
+          useAutogenSprites: currentState.useAutogenSprites,
         ),
       );
     } catch (e) {
@@ -85,6 +92,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       final newState = SettingsLoaded(
         useSimpleIcons: currentState.useSimpleIcons,
         useAxAFusions: event.useAxAFusions,
+        useAutogenSprites: currentState.useAutogenSprites,
       );
 
       emit(newState);
@@ -94,6 +102,35 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         SettingsChanged(
           useSimpleIcons: currentState.useSimpleIcons,
           useAxAFusions: event.useAxAFusions,
+          useAutogenSprites: currentState.useAutogenSprites,
+        ),
+      );
+    } catch (e) {
+      emit(SettingsError('Failed to save settings: $e'));
+    }
+  }
+
+  Future<void> _onToggleAutogenSprites(
+    ToggleAutogenSprites event,
+    Emitter<SettingsState> emit,
+  ) async {
+    try {
+      await SettingsService.setUseAutogenSprites(event.useAutogenSprites);
+
+      final currentState = state as SettingsLoaded;
+      final newState = SettingsLoaded(
+        useSimpleIcons: currentState.useSimpleIcons,
+        useAxAFusions: currentState.useAxAFusions,
+        useAutogenSprites: event.useAutogenSprites,
+      );
+
+      emit(newState);
+
+      add(
+        SettingsChanged(
+          useSimpleIcons: currentState.useSimpleIcons,
+          useAxAFusions: currentState.useAxAFusions,
+          useAutogenSprites: event.useAutogenSprites,
         ),
       );
     } catch (e) {

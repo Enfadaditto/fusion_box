@@ -12,11 +12,18 @@ class ToggleAxAFusions extends SettingsEvent {
   ToggleAxAFusions(this.useAxAFusions);
 }
 
+class ToggleAutogenSprites extends SettingsEvent {
+  final bool useAutogenSprites;
+
+  ToggleAutogenSprites(this.useAutogenSprites);
+}
+
 class LoadSettings extends SettingsEvent {}
 
 class SettingsChanged extends SettingsEvent {
   final bool useSimpleIcons;
   final bool useAxAFusions;
+  final bool useAutogenSprites;
 
-  SettingsChanged({required this.useSimpleIcons, required this.useAxAFusions});
+  SettingsChanged({required this.useSimpleIcons, required this.useAxAFusions, required this.useAutogenSprites});
 }

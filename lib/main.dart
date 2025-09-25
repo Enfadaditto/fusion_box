@@ -18,12 +18,14 @@ void main() async {
 
   await dependency_injection.init();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  if (!kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  if (kDebugMode) {
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    if (kDebugMode) {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    }
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -51,7 +53,7 @@ class FusionBoxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pokemon Fusion Box',
+      title: 'Fusion Box',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.indigo,

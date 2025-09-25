@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import '../utils/pokemon_name_normalizer.dart';
 
 class SmallIconsService {
@@ -17,6 +20,7 @@ class SmallIconsService {
   // Cache for Pokemon IDs to avoid repeated API calls
   final Map<String, int> _pokemonIdCache = {};
   final Map<String, String> _pokemonIconUrlCache = {};
+  final Map<String, String> _pokemonIconFilePathCache = {};
 
 
 
@@ -57,10 +61,64 @@ class SmallIconsService {
     }
   }
 
+  /// Returns a File for the Pokemon's small icon, stored persistently in app storage.
+  /// If the file is already cached on disk, it is returned immediately without any network call.
+  /// Otherwise the icon is downloaded once and stored for future use.
+  Future<File?> getPokemonIconFile(String pokemonName) async {
+    final normalizedName = PokemonNameNormalizer.normalizePokemonName(pokemonName);
+
+    // Fast path: memory cache of file path
+    final memoPath = _pokemonIconFilePathCache[normalizedName];
+    if (memoPath != null) {
+      final memoFile = File(memoPath);
+      if (await memoFile.exists() && (await memoFile.length()) > 0) {
+        return memoFile;
+      }
+    }
+
+    // Ensure cache directory exists
+    final cacheDir = await _getIconsCacheDir();
+    final filePath = p.join(cacheDir.path, '$normalizedName.png');
+    final file = File(filePath);
+
+    // If present on disk, return it
+    if (await file.exists() && (await file.length()) > 0) {
+      _pokemonIconFilePathCache[normalizedName] = filePath;
+      return file;
+    }
+
+    try {
+      final iconUrl = await getPokemonIcon(pokemonName);
+      if (iconUrl.isEmpty) {
+        return null;
+      }
+      final response = await http.get(Uri.parse(iconUrl));
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+        await file.create(recursive: true);
+        await file.writeAsBytes(response.bodyBytes, flush: true);
+        _pokemonIconFilePathCache[normalizedName] = filePath;
+        return file;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Directory> _getIconsCacheDir() async {
+    final baseDir = await getApplicationSupportDirectory();
+    final dir = Directory(p.join(baseDir.path, 'small_icons_cache'));
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
+
   /// Clear the cache (useful for testing or memory management)
   void clearCache() {
     _pokemonIdCache.clear();
     _pokemonIconUrlCache.clear();
+    _pokemonIconFilePathCache.clear();
   }
 
   /// Get cache statistics

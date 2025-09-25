@@ -208,7 +208,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                 ],
               ),
             ),
-            title: const Text('Pokemon Fusion Box'),
+            title: const Text('Fusion Box'),
             backgroundColor: Theme.of(context).colorScheme.primaryContainer,
             actions: [
               Builder(

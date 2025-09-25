@@ -11,6 +11,7 @@ import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_ico
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/presentation/widgets/fusion/sprite_from_sheet.dart';
 import 'package:fusion_box/presentation/widgets/fusion/variant_picker_sheet.dart';
+import 'package:fusion_box/presentation/widgets/fusion/fusion_compare_cards.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
 import 'package:fusion_box/core/services/my_team_loadout_service.dart';
 import 'package:fusion_box/injection_container.dart';
@@ -72,6 +73,447 @@ class _MyTeamPageState extends State<MyTeamPage> {
     }
   }
 
+  Future<void> _startAddFlow() async {
+    final state = context.read<PokemonListBloc>().state;
+    if (state is! PokemonListLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lista de Pokémon no está lista aún')),
+      );
+      return;
+    }
+    final List<Pokemon> all = state.allPokemon;
+
+    final Pokemon? head = await _pickPokemon(all, title: 'Selecciona 2 Pokémon');
+    if (head == null) return;
+    final Pokemon? body = await _pickPokemon(all, title: 'Selecciona 2 Pokémon');
+    if (body == null) return;
+
+    // If both picks are the same Pokémon, add directly (no direction needed)
+    if (head.pokedexNumber == body.pokedexNumber) {
+      final result = await MyTeamService.addFusion(
+        headId: head.pokedexNumber,
+        bodyId: body.pokedexNumber,
+      );
+      if (!mounted) return;
+      String message;
+      switch (result) {
+        case MyTeamService.resultAdded:
+          message = 'Fusión añadida a tu equipo';
+          await _refresh();
+          break;
+        case MyTeamService.resultAlreadyExists:
+          message = 'Esa fusión ya está en tu equipo';
+          break;
+        case MyTeamService.resultTeamFull:
+          message = 'Tu equipo está lleno';
+          break;
+        default:
+          message = 'No se pudo añadir la fusión';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      return;
+    }
+
+    final selected = await _chooseFusionDirection(head, body);
+    if (!mounted || selected == null) return;
+
+    final result = await MyTeamService.addFusion(headId: selected['head'] as int, bodyId: selected['body'] as int);
+    if (!mounted) return;
+    if (result == MyTeamService.resultAdded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fusión añadida a tu equipo')),
+      );
+      await _refresh();
+    } else if (result == MyTeamService.resultAlreadyExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Esa fusión ya está en tu equipo')),
+      );
+    } else if (result == MyTeamService.resultTeamFull) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tu equipo está lleno')),
+      );
+    }
+  }
+
+  Future<Map<String, int>?> _chooseFusionDirection(Pokemon head, Pokemon body) async {
+    final repo = instance<SpriteRepository>();
+    SpriteData? spriteAB;
+    SpriteData? spriteBA;
+
+    Future<SpriteData?> loadSprite(int h, int b) async {
+      try {
+        SpriteData? s = await repo.getSpecificSprite(h, b);
+        s ??= await repo.getAutogenSprite(h, b);
+        return s;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    // Show the sheet immediately; load both directions in the background
+    bool isLoading = true;
+    bool started = false;
+
+    return showModalBottomSheet<Map<String, int>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            // Kick off async loads only once after the sheet is built
+            if (!started) {
+              started = true;
+              Future<void>(() async {
+                final results = await Future.wait<SpriteData?>([
+                  loadSprite(head.pokedexNumber, body.pokedexNumber),
+                  loadSprite(body.pokedexNumber, head.pokedexNumber),
+                ]);
+                spriteAB = results[0];
+                spriteBA = results[1];
+                if (mounted) {
+                  setSheetState(() {
+                    isLoading = false;
+                  });
+                }
+              });
+            }
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16 + MediaQuery.of(context).padding.top,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: isLoading
+                  ? SizedBox(
+                      height: 220,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2.5),
+                            ),
+                            SizedBox(height: 12),
+                            Text('Cargando fusiones...'),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                        const Text('Elige dirección de fusión', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        // Nota: No cerramos esta hoja al añadir; cada tarjeta de FusionDetails ya tiene su botón de añadir.
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[850],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey[600]!),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${head.name} + ${body.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 8),
+                                    FusionCompareCardMedium(
+                                      fusion: Fusion(
+                                        headPokemon: head,
+                                        bodyPokemon: body,
+                                        availableSprites: const [],
+                                        types: _calculateFusionTypes(head, body),
+                                        primarySprite: spriteAB,
+                                        stats: null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Center(
+                                      child: FilledButton.icon(
+                                        onPressed: () async {
+                                          final result = await MyTeamService.addFusion(
+                                            headId: head.pokedexNumber,
+                                            bodyId: body.pokedexNumber,
+                                          );
+                                          if (!mounted) return;
+                                          String message;
+                                          switch (result) {
+                                            case MyTeamService.resultAdded:
+                                              message = 'Fusión añadida a tu equipo';
+                                              await _refresh();
+                                              break;
+                                            case MyTeamService.resultAlreadyExists:
+                                              message = 'Esa fusión ya está en tu equipo';
+                                              break;
+                                            case MyTeamService.resultTeamFull:
+                                              message = 'Tu equipo está lleno';
+                                              break;
+                                            default:
+                                              message = 'No se pudo añadir la fusión';
+                                          }
+                                          ScaffoldMessenger.of(this.context).showSnackBar(
+                                            SnackBar(content: Text(message)),
+                                          );
+                                          Navigator.of(context).pop();
+                                        },
+                                        icon: const Icon(Icons.check),
+                                        label: const Text('Agregar'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[850],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey[600]!),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${body.name} + ${head.name}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 8),
+                                    FusionCompareCardMedium(
+                                      fusion: Fusion(
+                                        headPokemon: body,
+                                        bodyPokemon: head,
+                                        availableSprites: const [],
+                                        types: _calculateFusionTypes(body, head),
+                                        primarySprite: spriteBA,
+                                        stats: null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Center(
+                                      child: FilledButton.icon(
+                                        onPressed: () async {
+                                          final result = await MyTeamService.addFusion(
+                                            headId: body.pokedexNumber,
+                                            bodyId: head.pokedexNumber,
+                                          );
+                                          if (!mounted) return;
+                                          String message;
+                                          switch (result) {
+                                            case MyTeamService.resultAdded:
+                                              message = 'Fusión añadida a tu equipo';
+                                              await _refresh();
+                                              break;
+                                            case MyTeamService.resultAlreadyExists:
+                                              message = 'Esa fusión ya está en tu equipo';
+                                              break;
+                                            case MyTeamService.resultTeamFull:
+                                              message = 'Tu equipo está lleno';
+                                              break;
+                                            default:
+                                              message = 'No se pudo añadir la fusión';
+                                          }
+                                          ScaffoldMessenger.of(this.context).showSnackBar(
+                                            SnackBar(content: Text(message)),
+                                          );
+                                          Navigator.of(context).pop();
+                                        },
+                                        icon: const Icon(Icons.check),
+                                        label: const Text('Agregar'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        ],
+                      ),
+                    ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _fusionChoiceCard({
+    required String title,
+    required SpriteData? sprite,
+    required Pokemon fallbackHead,
+    required Pokemon fallbackBody,
+    required VoidCallback onVariants,
+    required VoidCallback onChoose,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[600]!),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey[800],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[600]!),
+            ),
+            padding: const EdgeInsets.all(6),
+            child: (sprite != null)
+                ? SpriteFromSheet(spriteData: sprite, width: 80, height: 80, fit: BoxFit.contain)
+                : SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: StreamBasedPokemonIcon(pokemon: fallbackHead, size: 36),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: StreamBasedPokemonIcon(pokemon: fallbackBody, size: 36),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: onVariants,
+                      icon: const Icon(Icons.layers_outlined, size: 16),
+                      label: const Text('Variantes'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: onChoose,
+                      icon: const Icon(Icons.check),
+                      label: const Text('Agregar'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Pokemon?> _pickPokemon(List<Pokemon> all, {required String title}) async {
+    return showModalBottomSheet<Pokemon>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        String query = '';
+        final controller = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final List<Pokemon> filtered = query.isEmpty
+                ? all
+                : all.where((p) {
+                    final q = query.toLowerCase();
+                    return p.name.toLowerCase().contains(q) ||
+                        p.pokedexNumber.toString().contains(q);
+                  }).toList();
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16 + MediaQuery.of(context).padding.top,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar por nombre o número',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (v) => setSheetState(() => query = v.trim()),
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final p = filtered[index];
+                        return ListTile(
+                          leading: StreamBasedPokemonIconSmall(pokemon: p),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Row(
+                            children: [
+                              Text(
+                                '#${p.pokedexNumber.toString().padLeft(3, '0')}',
+                                style: TextStyle(color: Colors.grey[600], fontFamily: 'monospace'),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                p.types.join(', '),
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                            ],
+                          ),
+                          trailing: const Icon(Icons.add_circle_outline),
+                          onTap: () => Navigator.of(context).pop(p),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -122,6 +564,32 @@ class _MyTeamPageState extends State<MyTeamPage> {
                       child: _buildDefensiveTable(context, fusions),
                     ),
                   ],
+                );
+              },
+            );
+          },
+        ),
+        floatingActionButton: Builder(
+          builder: (context) {
+            final controller = DefaultTabController.of(context);
+            return AnimatedBuilder(
+              animation: controller.animation!,
+              builder: (context, _) {
+                final onTeamTab = controller.index == 0;
+                if (!onTeamTab) return const SizedBox.shrink();
+                return FutureBuilder<List<Map<String, int>>>(
+                  future: _futureTeam,
+                  builder: (context, snapshot) {
+                    final team = snapshot.data ?? const <Map<String, int>>[];
+                    final bool canAddMore = team.length < 6;
+                    return canAddMore
+                        ? FloatingActionButton(
+                            onPressed: _startAddFlow,
+                            child: const Icon(Icons.add),
+                            tooltip: 'Añadir fusión',
+                          )
+                        : const SizedBox.shrink();
+                  },
                 );
               },
             );

@@ -24,8 +24,8 @@ class PokemonSmallIcon extends StatelessWidget {
         ],
       ),
       child: ClipOval(
-        child: FutureBuilder<String>(
-          future: SmallIconsService().getPokemonIcon(pokemon.name),
+        child: FutureBuilder<Widget>(
+          future: _buildImage(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Container(
@@ -60,27 +60,49 @@ class PokemonSmallIcon extends StatelessWidget {
               );
             }
 
-            return Image.network(
-              snapshot.data!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback to a colored circle with Pokemon number
-                return Container(
-                  color: Colors.grey[400],
-                  child: Center(
-                    child: Text(
-                      pokemon.pokedexNumber.toString(),
-                      style: TextStyle(
-                        fontSize: size * 0.3,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
+            return snapshot.data!;
           },
+        ),
+      ),
+    );
+  }
+  
+  Future<Widget> _buildImage() async {
+    try {
+      final file = await SmallIconsService().getPokemonIconFile(pokemon.name);
+      if (file != null && await file.exists()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _fallback(),
+        );
+      }
+      // If file cache is not available, fall back to network once
+      final url = await SmallIconsService().getPokemonIcon(pokemon.name);
+      if (url.isNotEmpty) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _fallback(),
+        );
+      }
+      return _fallback();
+    } catch (_) {
+      return _fallback();
+    }
+  }
+
+  Widget _fallback() {
+    return Container(
+      color: Colors.grey[400],
+      child: Center(
+        child: Text(
+          pokemon.pokedexNumber.toString(),
+          style: TextStyle(
+            fontSize: size * 0.3,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );

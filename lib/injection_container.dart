@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:fusion_box/core/services/logging/firebase_logger.dart';
+import 'package:fusion_box/core/services/logging/noop_logger.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -49,8 +51,13 @@ Future<void> init() async {
   );
 
   // Services
-  instance.registerLazySingleton<LoggerService>(() => FirebaseLogger());
-  instance.registerLazySingleton(() => FirebaseLogger());
+  if (kIsWeb) {
+    instance.registerLazySingleton<LoggerService>(() => NoopLogger());
+    instance.registerLazySingleton(() => NoopLogger());
+  } else {
+    instance.registerLazySingleton<LoggerService>(() => FirebaseLogger());
+    instance.registerLazySingleton(() => FirebaseLogger());
+  }
   instance.registerLazySingleton(() => SpriteDownloadService(
         preferences: instance(),
         logger: instance<LoggerService>(),
