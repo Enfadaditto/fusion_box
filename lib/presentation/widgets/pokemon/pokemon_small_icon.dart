@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/core/services/small_icons_service.dart';
 
@@ -69,6 +70,19 @@ class PokemonSmallIcon extends StatelessWidget {
   
   Future<Widget> _buildImage() async {
     try {
+      // On web, avoid file-based caching (dart:io is unsupported) and load directly from network
+      if (kIsWeb) {
+        final url = await SmallIconsService().getPokemonIcon(pokemon.name);
+        if (url.isNotEmpty) {
+          return Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _fallback(),
+          );
+        }
+        return _fallback();
+      }
+
       final file = await SmallIconsService().getPokemonIconFile(pokemon.name);
       if (file != null && await file.exists()) {
         return Image.file(

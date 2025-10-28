@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../utils/pokemon_name_normalizer.dart';
@@ -92,7 +93,11 @@ class SmallIconsService {
       if (iconUrl.isEmpty) {
         return null;
       }
-      final response = await http.get(Uri.parse(iconUrl));
+      final response = await http.get(Uri.parse(
+        kIsWeb && iconUrl.startsWith('https://raw.githubusercontent.com')
+            ? 'https://images.weserv.nl/?url=' + iconUrl.replaceFirst('https://', '')
+            : iconUrl,
+      ));
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         await file.create(recursive: true);
         await file.writeAsBytes(response.bodyBytes, flush: true);

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fusion_box/config/app_config.dart';
 import 'package:fusion_box/core/services/variants_cache_service.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 enum SpriteType { custom, base }
 
@@ -23,6 +24,10 @@ class SpriteDownloadService {
     String variant = '',
     SpriteType type = SpriteType.custom,
   }) async {
+    if (kIsWeb) {
+      // On web we do not write to local filesystem
+      return false;
+    }
     final file = File(localSpritePath);
     if (await file.exists()) {
       return true;
@@ -48,6 +53,10 @@ class SpriteDownloadService {
     required String baseLocalPath,
     SpriteType type = SpriteType.custom,
   }) async {
+    if (kIsWeb) {
+      // No-op on web
+      return <String>[];
+    }
     final downloadedVariants = <String>[];
 
     final mainPath = baseLocalPath.replaceAll('.png', '.png');
@@ -161,6 +170,10 @@ class SpriteDownloadService {
     String destinationPath, {
     bool checkStatus404 = false,
   }) async {
+    if (kIsWeb) {
+      // On web we do not persist to disk
+      return false;
+    }
     try {
       final response = await http
           .get(
