@@ -7,6 +7,7 @@ import 'package:fusion_box/core/utils/stat_color_utils.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_icon.dart';
+import 'package:fusion_box/domain/entities/move_learn.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
@@ -45,9 +46,10 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
   String? _statsError;
   Set<String>? _abilities;
   bool _isLoadingAbilities = true;
-  List<String>? _moves;
+  List<MoveLearn>? _moves;
   bool _isLoadingMoves = true;
   SpriteData? _currentSprite;
+  bool _showMoves = false;
 
   void _showDefensiveSchemeForTypes(List<String> types) {
     final TypeEffectivenessService svc = const TypeEffectivenessService();
@@ -175,6 +177,9 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       _loadFusionStats();
       _loadAbilities();
       _currentSprite = widget.fusion!.primarySprite;
+      _moves = null;
+      _isLoadingMoves = true;
+      _loadFusionMoves();
     } else {
       _isLoadingStats = true;
       _loadPokemonStats();
@@ -198,6 +203,9 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         _isLoadingAbilities = true;
         _loadAbilities();
         _currentSprite = widget.fusion!.primarySprite;
+        _moves = null;
+        _isLoadingMoves = true;
+        _loadFusionMoves();
       } else {
         _isLoadingStats = true;
         _abilities = null;
@@ -343,7 +351,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
   Future<void> _loadPokemonMoves() async {
     try {
       final loader = PokemonEnrichmentLoader();
-      final list = await loader.getMovesOfPokemon(widget.pokemon!);
+      final list = await loader.getMovesWithLevelsOfPokemon(widget.pokemon!);
       if (!mounted) return;
       setState(() {
         _moves = list;
@@ -353,6 +361,33 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       try {
         instance.get<LoggerService>().logError(
           Exception('FusionDetails: failed to load moves for pokemon ${widget.pokemon?.pokedexNumber}: $e'),
+          s,
+        );
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        _moves = const [];
+        _isLoadingMoves = false;
+      });
+    }
+  }
+
+  Future<void> _loadFusionMoves() async {
+    try {
+      final loader = PokemonEnrichmentLoader();
+      final combined = await loader.getCombinedMovesWithLevels(
+        widget.fusion!.headPokemon,
+        widget.fusion!.bodyPokemon,
+      );
+      if (!mounted) return;
+      setState(() {
+        _moves = combined;
+        _isLoadingMoves = false;
+      });
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to load combined moves for fusion ${widget.fusion?.fusionId}: $e'),
           s,
         );
       } catch (_) {}
@@ -825,69 +860,170 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
 
           // Compact action removed from here; now integrated into the sprite area
 
+          // Moves section (for fusion)
+          if (widget.fusion != null) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showMoves = !_showMoves;
+                  });
+                },
+                child: const Text('MOVES'),
+              ),
+            ),
+            if (_showMoves)
+              (_isLoadingMoves)
+                  ? Container(
+                      padding: const EdgeInsets.all(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Loading moves...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ((_moves ?? const []).isEmpty)
+                      ? const SizedBox.shrink()
+                      : Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[600]!),
+                          ),
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(
+                                label: Text(
+                                  'Lvl',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Move',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            rows: _moves!
+                                .map((m) => DataRow(cells: [
+                                      DataCell(Text(
+                                        (m.level == null || m.level! <= 0) ? 'X' : m.level!.toString(),
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        m.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                    ]))
+                                .toList(),
+                          ),
+                        ),
+          ],
+
           // Moves section (only for single Pokemon)
           if (widget.fusion == null) ...[
             const SizedBox(height: 24),
-            if (_isLoadingMoves)
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Loading moves...',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              )
-            else if ((_moves ?? const []).isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[600]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Moves',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[300],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _moves!
-                          .take(30)
-                          .map((m) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[700],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  m,
-                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                ),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showMoves = !_showMoves;
+                  });
+                },
+                child: const Text('MOVES'),
               ),
+            ),
+            if (_showMoves)
+              (_isLoadingMoves)
+                  ? Container(
+                      padding: const EdgeInsets.all(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Loading moves...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ((_moves ?? const []).isEmpty)
+                      ? const SizedBox.shrink()
+                      : Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[600]!),
+                          ),
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(
+                                label: Text(
+                                  'Lvl',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Move',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            rows: _moves!
+                                .map((m) => DataRow(cells: [
+                                      DataCell(Text(
+                                        (m.level == null || m.level! <= 0) ? 'X' : m.level!.toString(),
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        m.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                    ]))
+                                .toList(),
+                          ),
+                        ),
           ],
         ],
       ),

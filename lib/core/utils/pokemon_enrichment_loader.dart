@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:fusion_box/core/utils/pokemon_name_normalizer.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
+import 'package:fusion_box/domain/entities/move_learn.dart';
 
 /// Loads enrichment data for Pokemon from `assets/pokemon_full_list.json`.
 ///
@@ -22,6 +23,9 @@ class PokemonEnrichmentLoader {
   Map<int, List<String>>? _movesByNumber;
   Map<String, List<String>>? _movesByNormalizedName;
   List<String>? _allMoves;
+  // Moves with level info
+  Map<int, List<MoveLearn>>? _movesWithLevelByNumber;
+  Map<String, List<MoveLearn>>? _movesWithLevelByNormalizedName;
 
   Future<void> _ensureLoaded() async {
     if (_abilitiesByNumber != null &&
@@ -29,7 +33,9 @@ class PokemonEnrichmentLoader {
         _allAbilities != null &&
         _movesByNumber != null &&
         _movesByNormalizedName != null &&
-        _allMoves != null) {
+        _allMoves != null &&
+        _movesWithLevelByNumber != null &&
+        _movesWithLevelByNormalizedName != null) {
       return;
     }
 
@@ -44,6 +50,9 @@ class PokemonEnrichmentLoader {
     final Map<int, List<String>> movesByNumber = {};
     final Map<String, List<String>> movesByNormalizedName = {};
     final Set<String> moveSet = {};
+    // With-level structures
+    final Map<int, List<MoveLearn>> movesWithLevelByNumber = {};
+    final Map<String, List<MoveLearn>> movesWithLevelByNormalizedName = {};
 
     for (final dynamic raw in items) {
       if (raw is! Map<String, dynamic>) continue;
@@ -62,7 +71,7 @@ class PokemonEnrichmentLoader {
       byNormalizedName[normalized] = abilities;
       abilitySet.addAll(abilities);
 
-      // Parse moves
+      // Parse moves (strings)
       final List<dynamic>? movesRaw = raw['moves'] as List<dynamic>?;
       final List<String> moves = movesRaw == null
           ? const []
@@ -70,6 +79,37 @@ class PokemonEnrichmentLoader {
       movesByNumber[number] = moves;
       movesByNormalizedName[normalized] = moves;
       moveSet.addAll(moves);
+
+      // Parse moves with levels if available in JSON, otherwise fallback using unknown level
+      final List<dynamic>? movesByLevelRaw = raw['movesByLevel'] as List<dynamic>?;
+      final List<MoveLearn> movesWithLevels = <MoveLearn>[];
+      if (movesByLevelRaw != null) {
+        for (final dynamic item in movesByLevelRaw) {
+          if (item is Map<String, dynamic>) {
+            final String n = (item['name'] ?? '').toString();
+            final int? lvl = (item['level'] is num) ? (item['level'] as num).toInt() : null;
+            if (n.isNotEmpty) {
+              movesWithLevels.add(MoveLearn(name: n, level: lvl));
+            }
+          }
+        }
+      } else {
+        // Fallback: map plain moves to unknown level
+        for (final String n in moves) {
+          movesWithLevels.add(MoveLearn(name: n, level: null));
+        }
+      }
+      // Sort by level (nulls last), then by name
+      movesWithLevels.sort((a, b) {
+        if (a.level == null && b.level == null) return a.name.compareTo(b.name);
+        if (a.level == null) return 1;
+        if (b.level == null) return -1;
+        final int cmp = a.level!.compareTo(b.level!);
+        if (cmp != 0) return cmp;
+        return a.name.compareTo(b.name);
+      });
+      movesWithLevelByNumber[number] = movesWithLevels;
+      movesWithLevelByNormalizedName[normalized] = movesWithLevels;
     }
 
     final List<String> all = abilitySet.toList()..sort();
@@ -80,6 +120,8 @@ class PokemonEnrichmentLoader {
     _movesByNumber = movesByNumber;
     _movesByNormalizedName = movesByNormalizedName;
     _allMoves = allMoves;
+    _movesWithLevelByNumber = movesWithLevelByNumber;
+    _movesWithLevelByNormalizedName = movesWithLevelByNormalizedName;
   }
 
   Future<List<String>> getAllAbilities() async {
@@ -122,6 +164,15 @@ class PokemonEnrichmentLoader {
     return byName ?? const [];
   }
 
+  Future<List<MoveLearn>> getMovesWithLevelsOfPokemon(Pokemon pokemon) async {
+    await _ensureLoaded();
+    final byNum = _movesWithLevelByNumber![pokemon.pokedexNumber];
+    if (byNum != null) return byNum;
+    final normalized = PokemonNameNormalizer.normalizePokemonName(pokemon.name);
+    final byName = _movesWithLevelByNormalizedName![normalized];
+    return byName ?? const <MoveLearn>[];
+  }
+
   Future<Set<String>> getCombinedMoves(
     Pokemon head,
     Pokemon body,
@@ -130,6 +181,46 @@ class PokemonEnrichmentLoader {
     final b = await getMovesOfPokemon(body);
     final combined = <String>{}..addAll(a)..addAll(b);
     return combined;
+  }
+
+  Future<List<MoveLearn>> getCombinedMovesWithLevels(
+    Pokemon head,
+    Pokemon body,
+  ) async {
+    final a = await getMovesWithLevelsOfPokemon(head);
+    final b = await getMovesWithLevelsOfPokemon(body);
+    // Merge by lowercase name, keeping the minimum known level (if any)
+    final Map<String, MoveLearn> byName = {};
+    void addAll(List<MoveLearn> list) {
+      for (final MoveLearn m in list) {
+        final key = m.name.toLowerCase();
+        if (!byName.containsKey(key)) {
+          byName[key] = m;
+        } else {
+          final MoveLearn existing = byName[key]!;
+          final int? lvl = _minNullable(existing.level, m.level);
+          byName[key] = MoveLearn(name: existing.name, level: lvl);
+        }
+      }
+    }
+    addAll(a);
+    addAll(b);
+    final List<MoveLearn> out = byName.values.toList();
+    out.sort((x, y) {
+      if (x.level == null && y.level == null) return x.name.compareTo(y.name);
+      if (x.level == null) return 1;
+      if (y.level == null) return -1;
+      final int cmp = x.level!.compareTo(y.level!);
+      if (cmp != 0) return cmp;
+      return x.name.compareTo(y.name);
+    });
+    return out;
+  }
+
+  int? _minNullable(int? a, int? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return a < b ? a : b;
   }
 
   /// Returns the set of Pokedex numbers of Pokemon that have ALL of the
