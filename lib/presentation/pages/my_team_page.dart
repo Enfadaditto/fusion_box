@@ -248,11 +248,13 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                     Center(
                                       child: FilledButton.icon(
                                         onPressed: () async {
+                                          final parentContext = this.context;
+                                          final sheetContext = context;
                                           final result = await MyTeamService.addFusion(
                                             headId: head.pokedexNumber,
                                             bodyId: body.pokedexNumber,
                                           );
-                                          if (!this.context.mounted || !context.mounted) return;
+                                          if (!parentContext.mounted || !sheetContext.mounted) return;
                                           String message;
                                           switch (result) {
                                             case MyTeamService.resultAdded:
@@ -268,10 +270,10 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                             default:
                                               message = 'No se pudo añadir la fusión';
                                           }
-                                          ScaffoldMessenger.of(this.context).showSnackBar(
+                                          ScaffoldMessenger.of(parentContext).showSnackBar(
                                             SnackBar(content: Text(message)),
                                           );
-                                          Navigator.of(context).pop();
+                                          Navigator.of(sheetContext).pop();
                                         },
                                         icon: const Icon(Icons.check),
                                         label: const Text('Agregar'),
@@ -309,11 +311,13 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                     Center(
                                       child: FilledButton.icon(
                                         onPressed: () async {
+                                          final parentContext = this.context;
+                                          final sheetContext = context;
                                           final result = await MyTeamService.addFusion(
                                             headId: body.pokedexNumber,
                                             bodyId: head.pokedexNumber,
                                           );
-                                          if (!this.context.mounted || !context.mounted) return;
+                                          if (!parentContext.mounted || !sheetContext.mounted) return;
                                           String message;
                                           switch (result) {
                                             case MyTeamService.resultAdded:
@@ -329,10 +333,10 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                             default:
                                               message = 'No se pudo añadir la fusión';
                                           }
-                                          ScaffoldMessenger.of(this.context).showSnackBar(
+                                          ScaffoldMessenger.of(parentContext).showSnackBar(
                                             SnackBar(content: Text(message)),
                                           );
-                                          Navigator.of(context).pop();
+                                          Navigator.of(sheetContext).pop();
                                         },
                                         icon: const Icon(Icons.check),
                                         label: const Text('Agregar'),
@@ -1219,10 +1223,11 @@ class _TeamRowState extends State<_TeamRow> {
                     final s = _variants[index];
                     return InkWell(
                       onTap: () async {
+                        final sheetContext = context;
                         await PreferredSpriteService.setPreferredVariant(headId, bodyId, s.variant);
-                        if (!mounted) return;
+                        if (!mounted || !sheetContext.mounted) return;
                         setState(() => _currentSprite = s);
-                        Navigator.of(context).pop();
+                        Navigator.of(sheetContext).pop();
                       },
                       child: Container(
                         decoration: BoxDecoration(
