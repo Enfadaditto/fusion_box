@@ -531,7 +531,7 @@ class SettingsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           _buildInfoRow('App Name', 'Fusion Box'),
-                          _buildInfoRow('Version', '1.2.0'),
+                          _buildInfoRow('Version', '1.2.1'),
                           _buildInfoRow('Developer', 'Enfadaditto'),
                         ],
                       ),

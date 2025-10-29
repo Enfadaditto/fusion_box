@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AppConfig {
   static const String appName = 'Fusion Box';
-  static const String appVersion = '1.2.0';
+  static const String appVersion = '1.2.1';
 
   // Game related configurations
   static const String defaultGamePathMessage =
