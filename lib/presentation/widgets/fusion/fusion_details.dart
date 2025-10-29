@@ -7,6 +7,7 @@ import 'package:fusion_box/core/utils/stat_color_utils.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/domain/entities/pokemon.dart';
 import 'package:fusion_box/presentation/widgets/pokemon/stream_based_pokemon_icon.dart';
+import 'package:fusion_box/domain/entities/move_learn.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
 import 'package:fusion_box/domain/entities/sprite_data.dart';
@@ -15,6 +16,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_bloc.dart';
 import 'package:fusion_box/presentation/bloc/fusion_grid/fusion_grid_event.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:fusion_box/core/services/type_effectiveness_service.dart';
+import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
+import 'package:fusion_box/core/services/my_team_service.dart';
+import 'package:fusion_box/presentation/widgets/fusion/variant_picker_sheet.dart';
 
 class FusionDetailsContent extends StatefulWidget {
   final Fusion? fusion;
@@ -41,9 +46,129 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
   String? _statsError;
   Set<String>? _abilities;
   bool _isLoadingAbilities = true;
-  List<String>? _moves;
+  List<MoveLearn>? _moves;
   bool _isLoadingMoves = true;
   SpriteData? _currentSprite;
+  bool _showMoves = false;
+
+  void _showDefensiveSchemeForTypes(List<String> types) {
+    final TypeEffectivenessService svc = const TypeEffectivenessService();
+    final Map<double, List<String>> buckets = svc.groupedEffectiveness(types);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        final double width = MediaQuery.of(context).size.width;
+        final double horizontalPadding = 16;
+        const int columns = 3; // fixed columns for consistent chip width
+        final double chipWidth = (width - horizontalPadding * 2 - (columns - 1) * 6) / columns;
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            12,
+            horizontalPadding,
+            MediaQuery.of(context).padding.bottom + 12,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Defensive effectiveness',
+                  style: TextStyle(color: Colors.grey[200], fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Types: ${types.join(' / ')}',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                ..._buildEffectivenessSection('x0', buckets[0.0] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x1/4', buckets[0.25] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x1/2', buckets[0.5] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x1', buckets[1.0] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x2', buckets[2.0] ?? const <String>[], chipWidth),
+                ..._buildEffectivenessSection('x4', buckets[4.0] ?? const <String>[], chipWidth),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildEffectivenessSection(String label, List<String> types, double chipWidth) {
+    if (types.isEmpty) return const <Widget>[];
+    return <Widget>[
+      Padding(
+        padding: const EdgeInsets.only(top: 6, bottom: 4),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: types
+            .map(
+              (t) => SizedBox(
+                width: chipWidth,
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: PokemonTypeColors.getTypeColor(t),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                  ),
+                  child: Text(
+                    t,
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    ];
+  }
+
+  Widget _buildTypeChip(String type) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: PokemonTypeColors.getTypeColor(type),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+      ),
+      child: Text(
+        type,
+        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -52,6 +177,9 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       _loadFusionStats();
       _loadAbilities();
       _currentSprite = widget.fusion!.primarySprite;
+      _moves = null;
+      _isLoadingMoves = true;
+      _loadFusionMoves();
     } else {
       _isLoadingStats = true;
       _loadPokemonStats();
@@ -75,6 +203,9 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         _isLoadingAbilities = true;
         _loadAbilities();
         _currentSprite = widget.fusion!.primarySprite;
+        _moves = null;
+        _isLoadingMoves = true;
+        _loadFusionMoves();
       } else {
         _isLoadingStats = true;
         _abilities = null;
@@ -111,21 +242,18 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) {
-        return _SpriteVariantPickerSheet(
-          headId: headId,
-          bodyId: bodyId,
-          initial: _currentSprite ?? widget.fusion!.primarySprite,
-          fusionGridBloc: capturedGridBloc,
-          onSelected: (sel) async {
-            await PreferredSpriteService.setPreferredVariant(headId, bodyId, sel.variant);
-            if (!mounted) return;
-            setState(() {
-              _currentSprite = sel;
-            });
-          },
-        );
-      },
+      builder: (context) => FusionVariantPickerSheet(
+        headId: headId,
+        bodyId: bodyId,
+        initial: _currentSprite ?? widget.fusion!.primarySprite,
+        onSelected: (sel) async {
+          await PreferredSpriteService.setPreferredVariant(headId, bodyId, sel.variant);
+          if (!mounted) return;
+          setState(() {
+            _currentSprite = sel;
+          });
+        },
+      ),
     );
   }
 
@@ -223,7 +351,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
   Future<void> _loadPokemonMoves() async {
     try {
       final loader = PokemonEnrichmentLoader();
-      final list = await loader.getMovesOfPokemon(widget.pokemon!);
+      final list = await loader.getMovesWithLevelsOfPokemon(widget.pokemon!);
       if (!mounted) return;
       setState(() {
         _moves = list;
@@ -233,6 +361,33 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       try {
         instance.get<LoggerService>().logError(
           Exception('FusionDetails: failed to load moves for pokemon ${widget.pokemon?.pokedexNumber}: $e'),
+          s,
+        );
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        _moves = const [];
+        _isLoadingMoves = false;
+      });
+    }
+  }
+
+  Future<void> _loadFusionMoves() async {
+    try {
+      final loader = PokemonEnrichmentLoader();
+      final combined = await loader.getCombinedMovesWithLevels(
+        widget.fusion!.headPokemon,
+        widget.fusion!.bodyPokemon,
+      );
+      if (!mounted) return;
+      setState(() {
+        _moves = combined;
+        _isLoadingMoves = false;
+      });
+    } catch (e, s) {
+      try {
+        instance.get<LoggerService>().logError(
+          Exception('FusionDetails: failed to load combined moves for fusion ${widget.fusion?.fusionId}: $e'),
           s,
         );
       } catch (_) {}
@@ -525,9 +680,23 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Types: ${widget.pokemon!.types.join(' / ')}',
-                  style: const TextStyle(fontSize: 14, color: Colors.white70),
+                Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          widget.pokemon!.types.join(' / '),
+                          style: const TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.help_outline, size: 18, color: Colors.white70),
+                      tooltip: 'Show defensive effectiveness',
+                      onPressed: () => _showDefensiveSchemeForTypes(widget.pokemon!.types),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -549,38 +718,80 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           ],
           
           if (widget.fusion != null) ...[
-            // Fusion Sprite (tap to choose variant)
-            GestureDetector(
-              onTap: _openSpriteCarousel,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[600]!),
+            // Fusion Sprite with integrated small action button
+            Stack(
+              children: [
+                GestureDetector(
+                  onTap: _openSpriteCarousel,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[600]!),
+                    ),
+                    child: (_currentSprite ?? widget.fusion!.primarySprite) != null
+                        ? SpriteFromSheet(
+                            spriteData: (_currentSprite ?? widget.fusion!.primarySprite)!,
+                            width: 120,
+                            height: 120,
+                            fit: BoxFit.contain,
+                          )
+                        : Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.purple[100],
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.purple[300]!),
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome,
+                              color: Colors.purple,
+                              size: 40,
+                            ),
+                          ),
+                  ),
                 ),
-                child: (_currentSprite ?? widget.fusion!.primarySprite) != null
-                    ? SpriteFromSheet(
-                        spriteData: (_currentSprite ?? widget.fusion!.primarySprite)!,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.contain,
-                      )
-                    : Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.purple[100],
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.purple[300]!),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          color: Colors.purple,
-                          size: 40,
-                        ),
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () async {
+                      final headId = widget.fusion!.headPokemon.pokedexNumber;
+                      final bodyId = widget.fusion!.bodyPokemon.pokedexNumber;
+                      final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
+                      if (!mounted) return;
+                      String message;
+                      switch (result) {
+                        case MyTeamService.resultAdded:
+                          message = 'Added to My Team';
+                          break;
+                        case MyTeamService.resultAlreadyExists:
+                          message = 'Already in My Team';
+                          break;
+                        case MyTeamService.resultTeamFull:
+                          message = 'Team is full (6)';
+                          break;
+                        default:
+                          message = 'Could not add to team';
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message)),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-              ),
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(Icons.group_add_outlined, size: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
           
@@ -588,10 +799,26 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           
           if (widget.fusion != null) ...[
             // Types
-            Text(
-              widget.fusion!.types.join(' / '),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
-              textAlign: TextAlign.center,
+            Row(
+              children: [
+                const SizedBox(width: 48),
+                Expanded(
+                  child: Center(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: widget.fusion!.types
+                          .map((t) => _buildTypeChip(t))
+                          .toList(),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.help_outline, size: 18, color: Colors.white70),
+                  tooltip: 'Show defensive effectiveness',
+                  onPressed: () => _showDefensiveSchemeForTypes(widget.fusion!.types),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
           ],
@@ -631,69 +858,172 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           // Stats Section
           _buildStatsSection(),
 
+          // Compact action removed from here; now integrated into the sprite area
+
+          // Moves section (for fusion)
+          if (widget.fusion != null) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showMoves = !_showMoves;
+                  });
+                },
+                child: const Text('MOVES'),
+              ),
+            ),
+            if (_showMoves)
+              (_isLoadingMoves)
+                  ? Container(
+                      padding: const EdgeInsets.all(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Loading moves...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ((_moves ?? const []).isEmpty)
+                      ? const SizedBox.shrink()
+                      : Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[600]!),
+                          ),
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(
+                                label: Text(
+                                  'Lvl',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Move',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            rows: _moves!
+                                .map((m) => DataRow(cells: [
+                                      DataCell(Text(
+                                        (m.level == null || m.level! <= 0) ? 'X' : m.level!.toString(),
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        m.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                    ]))
+                                .toList(),
+                          ),
+                        ),
+          ],
+
           // Moves section (only for single Pokemon)
           if (widget.fusion == null) ...[
             const SizedBox(height: 24),
-            if (_isLoadingMoves)
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Loading moves...',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              )
-            else if ((_moves ?? const []).isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[600]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Moves',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[300],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _moves!
-                          .take(30)
-                          .map((m) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[700],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  m,
-                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                ),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _showMoves = !_showMoves;
+                  });
+                },
+                child: const Text('MOVES'),
               ),
+            ),
+            if (_showMoves)
+              (_isLoadingMoves)
+                  ? Container(
+                      padding: const EdgeInsets.all(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Loading moves...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ((_moves ?? const []).isEmpty)
+                      ? const SizedBox.shrink()
+                      : Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[600]!),
+                          ),
+                          child: DataTable(
+                            columns: const [
+                              DataColumn(
+                                label: Text(
+                                  'Lvl',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Move',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            rows: _moves!
+                                .map((m) => DataRow(cells: [
+                                      DataCell(Text(
+                                        (m.level == null || m.level! <= 0) ? 'X' : m.level!.toString(),
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        m.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      )),
+                                    ]))
+                                .toList(),
+                          ),
+                        ),
           ],
         ],
       ),

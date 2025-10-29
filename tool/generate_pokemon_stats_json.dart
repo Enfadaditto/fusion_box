@@ -78,12 +78,47 @@ Future<void> main() async {
           .where((name) => name.isNotEmpty)
           .toList();
 
+      // Extract moves and level learned (from PokeAPI per version group)
+      final List<dynamic> rawMoves = (data['moves'] as List<dynamic>? ?? []);
+      final Set<String> moveNames = {};
+      final List<Map<String, dynamic>> movesByLevel = [];
+      String titleOf(String s) {
+        if (s.isEmpty) return s;
+        final parts = s.replaceAll('-', ' ').split(' ');
+        return parts
+            .where((e) => e.trim().isNotEmpty)
+            .map((part) => part[0].toUpperCase() + part.substring(1))
+            .join(' ');
+      }
+
+      for (final dynamic m in rawMoves) {
+        if (m is! Map<String, dynamic>) continue;
+        final String rawName = (m['move']?['name'] ?? '').toString();
+        if (rawName.isEmpty) continue;
+        final String moveName = titleOf(rawName);
+        moveNames.add(moveName);
+        int? minLevel;
+        final List<dynamic> vgd = (m['version_group_details'] as List<dynamic>? ?? []);
+        for (final dynamic d in vgd) {
+          if (d is! Map<String, dynamic>) continue;
+          final String method = (d['move_learn_method']?['name'] ?? '').toString();
+          if (method != 'level-up') continue;
+          final int lvl = ((d['level_learned_at'] ?? 0) as num).toInt();
+          if (lvl <= 0) continue;
+          if (minLevel == null || lvl < minLevel) minLevel = lvl;
+        }
+        movesByLevel.add({'name': moveName, 'level': minLevel});
+      }
+
       output.add({
         'number': p.pokedexNumber,
         'name': p.name,
         'types': p.types,
         'stats': statsMap(),
         'abilities': toTitleCase(abilityNames),
+        // keep both for compatibility and enriched UI
+        'moves': moveNames.toList()..sort(),
+        'movesByLevel': movesByLevel,
       });
     } catch (e) {
       stderr.writeln('  -> ERROR: ${p.name} (#${p.pokedexNumber}) exception: $e');

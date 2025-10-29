@@ -376,11 +376,11 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       81: {
         'name': 'Magnemite',
-        'types': ['Electric', 'Steel'],
+        'types': ['Steel', 'Electric'],
       },
       82: {
         'name': 'Magneton',
-        'types': ['Electric', 'Steel'],
+        'types': ['Steel', 'Electric'],
       },
       83: {
         'name': 'Farfetch\'d',
@@ -400,7 +400,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       87: {
         'name': 'Dewgong',
-        'types': ['Water', 'Ice'],
+        'types': ['Ice', 'Water'],
       },
       88: {
         'name': 'Grimer',
@@ -604,11 +604,11 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       138: {
         'name': 'Omanyte',
-        'types': ['Rock', 'Water'],
+        'types': ['Water', 'Rock'],
       },
       139: {
         'name': 'Omastar',
-        'types': ['Rock', 'Water'],
+        'types': ['Water', 'Rock'],
       },
       140: {
         'name': 'Kabuto',
@@ -900,7 +900,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       212: {
         'name': 'Scizor',
-        'types': ['Bug', 'Steel'],
+        'types': ['Steel', 'Bug'],
       },
       213: {
         'name': 'Shuckle',
@@ -1056,7 +1056,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       251: {
         'name': 'Celebi',
-        'types': ['Psychic', 'Grass'],
+        'types': ['Grass', 'Psychic'],
       },
 
       // Generation III (252-386) - Order matches FusionDex.org
@@ -1106,7 +1106,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       263: {
         'name': 'Magnezone',
-        'types': ['Electric', 'Steel'],
+        'types': ['Steel', 'Electric'],
       },
       264: {
         'name': 'Lickilicky',
@@ -1234,7 +1234,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       295: {
         'name': 'Spiritomb',
-        'types': ['Ghost', 'Dark'],
+        'types': ['Dark', 'Ghost'],
       },
       296: {
         'name': 'Lucario',
@@ -1318,7 +1318,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       316: {
         'name': 'Turtwig',
-        'types': ['Poison'],
+        'types': ['Grass'],
       },
       317: {
         'name': 'Grotle',
@@ -1350,7 +1350,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       324: {
         'name': 'Empoleon',
-        'types': ['Water', 'Steel'],
+        'types': ['Steel', 'Water'],
       },
       325: {
         'name': 'Nosepass',
@@ -1510,7 +1510,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       364: {
         'name': 'Ferrothorn',
-        'types': ['Grass', 'Steel'],
+        'types': ['Steel', 'Grass'],
       },
       365: {
         'name': 'Litwick',
@@ -1706,7 +1706,7 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       413: {
         'name': 'Ferroseed',
-        'types': ['Grass', 'Steel'],
+        'types': ['Steel', 'Grass'],
       },
       414: {
         'name': 'Axew',
@@ -1806,11 +1806,11 @@ class PokemonLocalDataSourceImpl implements PokemonLocalDataSource {
       },
       438: {
         'name': 'Phantump',
-        'types': ['Ghost', 'Grass'],
+        'types': ['Grass', 'Ghost'],
       },
       439: {
         'name': 'Trevenant',
-        'types': ['Ghost', 'Grass'],
+        'types': ['Grass', 'Ghost'],
       },
       440: {
         'name': 'Noibat',

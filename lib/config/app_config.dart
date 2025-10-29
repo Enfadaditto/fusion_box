@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class AppConfig {
-  static const String appName = 'Pokemon Fusion Box';
-  static const String appVersion = '1.1.0';
+  static const String appName = 'Fusion Box';
+  static const String appVersion = '1.2.1';
 
   // Game related configurations
   static const String defaultGamePathMessage =
@@ -24,6 +26,15 @@ class AppConfig {
       'https://infinitefusion.net/customsprites/spritesheets/spritesheets_custom/';
   static const String baseSpritesBaseUrl =
       'https://infinitefusion.net/customsprites/spritesheets/spritesheets_base/';
+
+  // Web-safe proxy (adds CORS headers). Only used on web.
+  static String get customSpritesBaseUrlWeb {
+    if (kIsWeb) {
+      // images.weserv.nl expects host without protocol
+      return 'https://images.weserv.nl/?url=infinitefusion.net/customsprites/spritesheets/spritesheets_custom/';
+    }
+    return customSpritesBaseUrl;
+  }
 
   // Download timeout configuration
   static const int downloadTimeoutSeconds = 30;

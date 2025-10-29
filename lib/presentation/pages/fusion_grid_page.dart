@@ -11,6 +11,7 @@ import 'package:fusion_box/presentation/pages/fusions_comparator.dart';
 import 'package:fusion_box/injection_container.dart';
 import 'package:fusion_box/domain/repositories/sprite_repository.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class FusionGridPage extends StatefulWidget {
   const FusionGridPage({super.key});
@@ -27,6 +28,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
   static const double _maxScale = 3.0;
   static const double _scaleStep = 0.25;
   bool _isToolboxVisible = true;
+  bool _initialWebScaleApplied = false;
 
   @override
   void dispose() {
@@ -180,7 +182,7 @@ class _FusionGridPageState extends State<FusionGridPage> {
             return Column(
               children: [
                 Expanded(child: _buildFusionGrid(context, state)),
-                // Botón COMPARE en la parte inferior
+                // Acciones inferiores: solo Compare (>=2). Agregar al equipo se hace desde detalles
                 if (state.selectedFusionIds.length >= 2)
                   Container(
                     width: double.infinity,
@@ -190,57 +192,48 @@ class _FusionGridPageState extends State<FusionGridPage> {
                       16,
                       16 + MediaQuery.of(context).padding.bottom,
                     ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () => _navigateToComparison(context, state),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[700],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _navigateToComparison(context, state),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[700],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
-                                'COMPARE',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            child: const Text(
+                              'COMPARE',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          // Indicador de notificación
-                          Positioned(
-                            top: -8,
-                            right: -8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${state.selectedFusionIds.length}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${state.selectedFusionIds.length}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -533,19 +526,44 @@ class _FusionGridPageState extends State<FusionGridPage> {
 
         // Grid con zoom mejorado
         Expanded(
-          child: InteractiveViewer(
-            transformationController: _transformationController,
-            boundaryMargin: const EdgeInsets.all(80),
-            minScale: _minScale,
-            maxScale: _maxScale,
-            constrained: false,
-            onInteractionEnd: (details) {
-              setState(() {
-                _currentScale =
-                    _transformationController.value.getMaxScaleOnAxis();
-              });
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Ajuste inicial a la altura disponible en Web
+              if (kIsWeb && !_initialWebScaleApplied) {
+                final int gridSize = state.selectedPokemon.length;
+                final double gridContentHeight = 80 + gridSize * 100 + 32; // header + rows + márgenes
+                final double available = constraints.maxHeight;
+                if (available > 0 && gridContentHeight > 0) {
+                  final double fitScale = (available / gridContentHeight).clamp(_minScale, _maxScale);
+                  // Solo aplicar si estamos en el zoom por defecto para no pisar zoom del usuario
+                  if (_currentScale == 1.0) {
+                    final double target = fitScale;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // Revalidar que sigamos montados
+                      if (mounted) {
+                        _setScale(target);
+                      }
+                    });
+                  }
+                  _initialWebScaleApplied = true;
+                }
+              }
+
+              return InteractiveViewer(
+                transformationController: _transformationController,
+                boundaryMargin: const EdgeInsets.all(80),
+                minScale: _minScale,
+                maxScale: _maxScale,
+                constrained: false,
+                onInteractionEnd: (details) {
+                  setState(() {
+                    _currentScale =
+                        _transformationController.value.getMaxScaleOnAxis();
+                  });
+                },
+                child: gridData,
+              );
             },
-            child: gridData,
           ),
         ),
       ],

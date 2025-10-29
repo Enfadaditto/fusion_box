@@ -135,22 +135,24 @@ class GenerateFusionGrid {
 
     // Prefetch de todas las filas al inicio para dar tiempo a completar
     try {
-      final downloader = instance<SpriteDownloadService>();
-      for (int i = 0; i < basicGrid.length; i++) {
-        final rowHeadId = (i == 0
-            ? basicGrid[i][1]!.headPokemon.pokedexNumber
-            : basicGrid[i][0]!.headPokemon.pokedexNumber);
-        if (!prefetchedHeadIds.contains(rowHeadId)) {
-          final spritesheetPath = await getFusion.spriteRepository.getSpritesheetPath(rowHeadId);
-          if (spritesheetPath != null) {
-            prefetchedHeadIds.add(rowHeadId);
-            unawaited(
-              downloader.downloadAllVariants(
-                headId: rowHeadId,
-                baseLocalPath: spritesheetPath,
-                type: SpriteType.custom,
-              ),
-            );
+      if (!kIsWeb) {
+        final downloader = instance<SpriteDownloadService>();
+        for (int i = 0; i < basicGrid.length; i++) {
+          final rowHeadId = (i == 0
+              ? basicGrid[i][1]!.headPokemon.pokedexNumber
+              : basicGrid[i][0]!.headPokemon.pokedexNumber);
+          if (!prefetchedHeadIds.contains(rowHeadId)) {
+            final spritesheetPath = await getFusion.spriteRepository.getSpritesheetPath(rowHeadId);
+            if (spritesheetPath != null) {
+              prefetchedHeadIds.add(rowHeadId);
+              unawaited(
+                downloader.downloadAllVariants(
+                  headId: rowHeadId,
+                  baseLocalPath: spritesheetPath,
+                  type: SpriteType.custom,
+                ),
+              );
+            }
           }
         }
       }
@@ -166,30 +168,33 @@ class GenerateFusionGrid {
     for (int i = 0; i < basicGrid.length; i++) {
       final row = <Fusion?>[];
       // 1 / 0 para evitar null en el ajuste AxA de fusiones
-      final spritesheetPath = await getFusion.spriteRepository
-          .getSpritesheetPath(
-            i == 0
-                ? basicGrid[i][1]!.headPokemon.pokedexNumber
-                : basicGrid[i][0]!.headPokemon.pokedexNumber,
-          );
+      final spritesheetPath = !kIsWeb
+          ? await getFusion.spriteRepository.getSpritesheetPath(
+              i == 0
+                  ? basicGrid[i][1]!.headPokemon.pokedexNumber
+                  : basicGrid[i][0]!.headPokemon.pokedexNumber,
+            )
+          : null;
 
       // Pre-batch crop for all body indices in this row using an isolate
       final Map<int, SpriteData> rowIndexToSprite = {};
       // Lanzar prefetched variants en segundo plano por headId de la fila
       try {
-        final rowHeadId = (i == 0
-                ? basicGrid[i][1]!.headPokemon.pokedexNumber
-                : basicGrid[i][0]!.headPokemon.pokedexNumber);
-        if (spritesheetPath != null && !prefetchedHeadIds.contains(rowHeadId)) {
-          prefetchedHeadIds.add(rowHeadId);
-          final downloader = instance<SpriteDownloadService>();
-          unawaited(
-            downloader.downloadAllVariants(
-              headId: rowHeadId,
-              baseLocalPath: spritesheetPath,
-              type: SpriteType.custom,
-            ),
-          );
+        if (!kIsWeb) {
+          final rowHeadId = (i == 0
+                  ? basicGrid[i][1]!.headPokemon.pokedexNumber
+                  : basicGrid[i][0]!.headPokemon.pokedexNumber);
+          if (spritesheetPath != null && !prefetchedHeadIds.contains(rowHeadId)) {
+            prefetchedHeadIds.add(rowHeadId);
+            final downloader = instance<SpriteDownloadService>();
+            unawaited(
+              downloader.downloadAllVariants(
+                headId: rowHeadId,
+                baseLocalPath: spritesheetPath,
+                type: SpriteType.custom,
+              ),
+            );
+          }
         }
       } catch (e, s) {
         try {
@@ -199,7 +204,7 @@ class GenerateFusionGrid {
           );
         } catch (_) {}
       }
-      if (spritesheetPath != null) {
+      if (!kIsWeb && spritesheetPath != null) {
         final spriteSheet = File(spritesheetPath);
         if (await spriteSheet.exists()) {
           // Collect all body indices needed for this row
@@ -261,6 +266,9 @@ class GenerateFusionGrid {
         }
       }
 
+      // Consultar si se permiten sprites autogenerados
+      final bool useAutogenSprites = await SettingsService.getUseAutogenSprites();
+
       // Procesar todas las columnas de esta fila
       for (int j = 0; j < basicGrid[i].length; j++) {
         final fusion = basicGrid[i][j];
@@ -287,7 +295,7 @@ class GenerateFusionGrid {
           }
 
           // 2) Si no hay preferencia o falló, intentar sprite del spritesheet base
-          if (finalSprite == null && spritesheetPath != null) {
+          if (finalSprite == null && !kIsWeb && spritesheetPath != null) {
             // Try isolate batch pre-crop result
             finalSprite = rowIndexToSprite[fusion.bodyPokemon.pokedexNumber];
           }
@@ -298,11 +306,19 @@ class GenerateFusionGrid {
             fusion.bodyPokemon.pokedexNumber,
           );
 
-          // Si no hay sprite personalizado, intentar autogenerado
-          finalSprite ??= await getFusion.spriteRepository.getAutogenSprite(
-            fusion.headPokemon.pokedexNumber,
-            fusion.bodyPokemon.pokedexNumber,
-          );
+          // Si no hay sprite personalizado, intentar autogenerado (en web devuelve placeholder)
+          if (finalSprite == null && useAutogenSprites) {
+            finalSprite = await getFusion.spriteRepository.getAutogenSprite(
+              fusion.headPokemon.pokedexNumber,
+              fusion.bodyPokemon.pokedexNumber,
+            );
+          }
+
+          // Si sigue sin sprite y los autogenerados están deshabilitados, marcar celda como disabled
+          if (finalSprite == null && !useAutogenSprites) {
+            row.add(null);
+            continue;
+          }
 
           // Calcular estadísticas de la fusión
           PokemonStats? fusionStats;

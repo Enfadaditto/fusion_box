@@ -4,6 +4,7 @@ import 'package:fusion_box/domain/usecases/get_pokemon_list.dart';
 import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_event.dart';
 import 'package:fusion_box/presentation/bloc/pokemon_list/pokemon_list_state.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
+import 'package:fusion_box/core/utils/fusion_stats_calculator.dart';
 
 class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
   final GetPokemonList getPokemonList;
@@ -20,6 +21,7 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     on<ReorderSelectedPokemon>(_onReorderSelectedPokemon);
     on<UpdateMovesFilter>(_onUpdateMovesFilter);
     on<UpdateTypesFilter>(_onUpdateTypesFilter);
+    on<UpdatePokemonSort>(_onUpdatePokemonSort);
   }
 
   Future<void> _onLoadPokemonList(
@@ -67,6 +69,11 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
             activeQuery: event.query,
           );
         }
+        filteredPokemon = await _applySortToList(
+          filteredPokemon,
+          sortKey: currentState.sortKey,
+          sortOrder: currentState.sortOrder,
+        );
         emit(
           currentState.copyWith(
             filteredPokemon: filteredPokemon,
@@ -178,6 +185,11 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
           activeQuery: currentState.searchQuery,
         );
       }
+      base = await _applySortToList(
+        base,
+        sortKey: currentState.sortKey,
+        sortOrder: currentState.sortOrder,
+      );
       emit(
         currentState.copyWith(
           filteredPokemon: base,
@@ -210,6 +222,11 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
           activeQuery: currentState.searchQuery,
         );
       }
+      base = await _applySortToList(
+        base,
+        sortKey: currentState.sortKey,
+        sortOrder: currentState.sortOrder,
+      );
       emit(
         currentState.copyWith(
           filteredPokemon: base,
@@ -245,6 +262,91 @@ class PokemonListBloc extends Bloc<PokemonListEvent, PokemonListState> {
     return out;
   }
 
+  Future<void> _onUpdatePokemonSort(
+    UpdatePokemonSort event,
+    Emitter<PokemonListState> emit,
+  ) async {
+    if (state is! PokemonListLoaded) return;
+    final currentState = state as PokemonListLoaded;
+    try {
+      var base = await getPokemonList.search(currentState.searchQuery);
+      if (currentState.typesFilter.isNotEmpty) {
+        base = _applyTypesFilterToList(base, currentState.typesFilter);
+      }
+      if (currentState.movesFilter.isNotEmpty) {
+        base = await _applyMovesFilterToList(
+          base,
+          currentState.movesFilter,
+          allPokemon: currentState.allPokemon,
+          activeQuery: currentState.searchQuery,
+        );
+      }
+      base = await _applySortToList(
+        base,
+        sortKey: event.sortKey,
+        sortOrder: event.sortOrder,
+      );
+      emit(
+        currentState.copyWith(
+          filteredPokemon: base,
+          sortKey: event.sortKey,
+          sortOrder: event.sortOrder,
+        ),
+      );
+    } catch (e) {
+      emit(PokemonListError('Failed to apply sort: $e'));
+    }
+  }
+
+  Future<List<Pokemon>> _applySortToList(
+    List<Pokemon> list, {
+    required PokemonSortKey sortKey,
+    required PokemonSortOrder sortOrder,
+  }) async {
+    if (sortKey == PokemonSortKey.none) return list;
+    final statsCalc = FusionStatsCalculator();
+    final List<MapEntry<Pokemon, int>> entries = [];
+    for (final p in list) {
+      try {
+        final s = await statsCalc.getStatsFromPokemon(p);
+        int value;
+        switch (sortKey) {
+          case PokemonSortKey.none:
+            value = 0;
+            break;
+          case PokemonSortKey.total:
+            value = s.hp + s.attack + s.defense + s.specialAttack + s.specialDefense + s.speed;
+            break;
+          case PokemonSortKey.hp:
+            value = s.hp;
+            break;
+          case PokemonSortKey.attack:
+            value = s.attack;
+            break;
+          case PokemonSortKey.defense:
+            value = s.defense;
+            break;
+          case PokemonSortKey.specialAttack:
+            value = s.specialAttack;
+            break;
+          case PokemonSortKey.specialDefense:
+            value = s.specialDefense;
+            break;
+          case PokemonSortKey.speed:
+            value = s.speed;
+            break;
+        }
+        entries.add(MapEntry(p, value));
+      } catch (_) {
+        entries.add(MapEntry(p, -0x3fffffff));
+      }
+    }
+    entries.sort((a, b) {
+      final cmp = a.value.compareTo(b.value);
+      return sortOrder == PokemonSortOrder.ascending ? cmp : -cmp;
+    });
+    return entries.map((e) => e.key).toList(growable: false);
+  }
   List<Pokemon> _applyTypesFilterToList(
     List<Pokemon> list,
     List<String> selectedTypes,

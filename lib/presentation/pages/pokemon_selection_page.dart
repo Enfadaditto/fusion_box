@@ -22,6 +22,7 @@ import 'package:fusion_box/core/services/settings_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fusion_box/core/services/saved_boxes_service.dart';
 import 'package:fusion_box/presentation/pages/saved_boxes_page.dart';
+import 'package:fusion_box/presentation/pages/my_team_page.dart';
 import 'package:fusion_box/core/utils/pokemon_enrichment_loader.dart';
 import 'package:fusion_box/core/constants/pokemon_type_colors.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
@@ -174,7 +175,40 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
         ],
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('Pokemon Fusion Box'),
+            leading: Builder(
+              builder: (innerCtx) => PopupMenuButton<String>(
+                tooltip: 'Menu',
+                icon: const Icon(Icons.menu),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'my_team':
+                      final pokemonListBloc = innerCtx.read<PokemonListBloc>();
+                      Navigator.of(innerCtx).push(
+                        MaterialPageRoute(
+                          builder: (context) => BlocProvider.value(
+                            value: pokemonListBloc,
+                            child: const MyTeamPage(),
+                          ),
+                        ),
+                      );
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    value: 'my_team',
+                    child: Row(
+                      children: const [
+                        Icon(Icons.groups_2_outlined, size: 18),
+                        SizedBox(width: 12),
+                        Text('My Team'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            title: const Text('Fusion Box'),
             backgroundColor: Theme.of(context).colorScheme.primaryContainer,
             actions: [
               Builder(
@@ -793,6 +827,44 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                   ),
                                                 ),
                                               ],
+                                              const Spacer(),
+                                              PopupMenuButton<PokemonSortKey>(
+                                                tooltip: 'Sort by stat',
+                                                onSelected: (key) {
+                                                  final s = state;
+                                                  PokemonSortKey nextKey = key;
+                                                  PokemonSortOrder nextOrder = PokemonSortOrder.descending;
+                                                  if (s.sortKey == key) {
+                                                    nextOrder = s.sortOrder == PokemonSortOrder.descending
+                                                        ? PokemonSortOrder.ascending
+                                                        : PokemonSortOrder.descending;
+                                                  } else {
+                                                    nextKey = key;
+                                                    nextOrder = PokemonSortOrder.descending;
+                                                  }
+                                                  FocusScope.of(context).unfocus();
+                                                  context.read<PokemonListBloc>().add(
+                                                        UpdatePokemonSort(
+                                                          sortKey: nextKey,
+                                                          sortOrder: nextOrder,
+                                                        ),
+                                                      );
+                                                },
+                                                itemBuilder: (context) => [
+                                                  const PopupMenuItem(value: PokemonSortKey.none, child: Text('None')),
+                                                  const PopupMenuItem(value: PokemonSortKey.total, child: Text('Total')),
+                                                  const PopupMenuItem(value: PokemonSortKey.hp, child: Text('HP')),
+                                                  const PopupMenuItem(value: PokemonSortKey.attack, child: Text('Attack')),
+                                                  const PopupMenuItem(value: PokemonSortKey.defense, child: Text('Defense')),
+                                                  const PopupMenuItem(value: PokemonSortKey.specialAttack, child: Text('Sp. Atk')),
+                                                  const PopupMenuItem(value: PokemonSortKey.specialDefense, child: Text('Sp. Def')),
+                                                  const PopupMenuItem(value: PokemonSortKey.speed, child: Text('Speed')),
+                                                ],
+                                                icon: Icon(
+                                                  Icons.sort,
+                                                  color: Theme.of(context).colorScheme.primary,
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -837,8 +909,9 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                             onTap: () {
                                               context.read<PokemonListBloc>().add(TogglePokemonSelection(pokemon));
                                             },
-                                            onLongPress: () {
-                                              FusionDetailsDialog.showForPokemon(context, pokemon);
+                                            onLongPress: () async {
+                                              await FusionDetailsDialog.showForPokemon(context, pokemon);
+                                              if (mounted) FocusScope.of(context).unfocus();
                                             },
                                           );
                                         }, childCount: state.filteredPokemon.length),
@@ -1101,6 +1174,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                 ),
                                               ],
                                               onSelected: (value) async {
+                                                FocusScope.of(context).unfocus();
                                                 if (value == 'sort_name') {
                                                   context.read<PokemonListBloc>().add(SortSelectedByName());
                                                 } else if (value == 'sort_dex') {
@@ -1540,6 +1614,43 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                           ),
                                         ),
                                       ],
+                                      const Spacer(),
+                                      PopupMenuButton<PokemonSortKey>(
+                                        tooltip: 'Sort by stat',
+                                        onSelected: (key) {
+                                          final s = state;
+                                          PokemonSortKey nextKey = key;
+                                          PokemonSortOrder nextOrder = PokemonSortOrder.descending;
+                                          if (s.sortKey == key) {
+                                            nextOrder = s.sortOrder == PokemonSortOrder.descending
+                                                ? PokemonSortOrder.ascending
+                                                : PokemonSortOrder.descending;
+                                          } else {
+                                            nextKey = key;
+                                            nextOrder = PokemonSortOrder.descending;
+                                          }
+                                          context.read<PokemonListBloc>().add(
+                                                UpdatePokemonSort(
+                                                  sortKey: nextKey,
+                                                  sortOrder: nextOrder,
+                                                ),
+                                              );
+                                        },
+                                        itemBuilder: (context) => const [
+                                          PopupMenuItem(value: PokemonSortKey.none, child: Text('None')),
+                                          PopupMenuItem(value: PokemonSortKey.total, child: Text('Total')),
+                                          PopupMenuItem(value: PokemonSortKey.hp, child: Text('HP')),
+                                          PopupMenuItem(value: PokemonSortKey.attack, child: Text('Attack')),
+                                          PopupMenuItem(value: PokemonSortKey.defense, child: Text('Defense')),
+                                          PopupMenuItem(value: PokemonSortKey.specialAttack, child: Text('Sp. Atk')),
+                                          PopupMenuItem(value: PokemonSortKey.specialDefense, child: Text('Sp. Def')),
+                                          PopupMenuItem(value: PokemonSortKey.speed, child: Text('Speed')),
+                                        ],
+                                        icon: Icon(
+                                          Icons.sort,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -1608,9 +1719,10 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                         TogglePokemonSelection(pokemon),
                                       );
                                     },
-                                    onLongPress: () {
+                                    onLongPress: () async {
                                       // Mostrar detalles del Pokemon individual
-                                      FusionDetailsDialog.showForPokemon(context, pokemon);
+                                      await FusionDetailsDialog.showForPokemon(context, pokemon);
+                                      if (mounted) FocusScope.of(context).unfocus();
                                     },
                                   );
                                 }, childCount: state.filteredPokemon.length),

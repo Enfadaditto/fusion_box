@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:fusion_box/config/firebase_options.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:fusion_box/core/services/logger_service.dart';
+import 'package:fusion_box/core/services/saved_boxes_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,12 +18,14 @@ void main() async {
 
   await dependency_injection.init();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  if (!kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  if (kDebugMode) {
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    if (kDebugMode) {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    }
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -38,6 +41,9 @@ void main() async {
     return true;
   };
 
+  // Initialize default saved boxes on first launch
+  await SavedBoxesService.initializeDefaultsIfNeeded();
+
   runApp(const FusionBoxApp());
 }
 
@@ -47,7 +53,7 @@ class FusionBoxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pokemon Fusion Box',
+      title: 'Fusion Box',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.indigo,
@@ -62,6 +68,7 @@ class FusionBoxApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      themeMode: ThemeMode.dark,
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
       builder: (context, child) => child ?? const SizedBox.shrink(),
