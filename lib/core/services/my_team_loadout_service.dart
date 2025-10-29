@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Persists ability and moves selections for each fusion in "My Team".
-/// Stored as a single JSON object map: fusionId -> { ability: String?, moves: List<String?> }
+/// Stored as a single JSON object map: `fusionId -> { ability: String?, moves: List<String?> }`
 class MyTeamLoadoutService {
   static const String _storageKey = 'my_team_loadout_v1';
 
@@ -54,7 +54,7 @@ class MyTeamLoadoutService {
     final all = await _getAllRaw();
     final entry = all[fusionId];
     if (entry is Map && entry['moves'] is List) {
-      final list = (entry['moves'] as List).map((e) => e == null ? null : e.toString()).toList();
+      final list = (entry['moves'] as List).map((e) => e?.toString()).toList();
       return List<String?>.generate(4, (i) => i < list.length ? list[i] : null);
     }
     return List<String?>.filled(4, null);

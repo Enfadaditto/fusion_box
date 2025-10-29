@@ -79,7 +79,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
       return false;
     }
     await SavedBoxesService.saveBox(trimmed, ids);
-    if (!mounted) return true;
+    if (!context.mounted) return true;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Saved "$trimmed"')), 
     );
@@ -574,8 +574,8 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                                         if (!submitting) {
                                                                           setLocalState(() => submitting = true);
                                                                           final ok = await _handleSaveBox(context, nameController.text, state.selectedPokemon.map((p) => p.pokedexNumber).toList());
-                                                                          if (ok && mounted) Navigator.of(ctx).pop();
-                                                                          if (mounted) setLocalState(() => submitting = false);
+                                                                          if (ok && ctx.mounted) Navigator.of(ctx).pop();
+                                                                          setLocalState(() => submitting = false);
                                                                         }
                                                                       },
                                                                     ),
@@ -598,8 +598,8 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                                               return;
                                                                             }
                                                                             final ok = await _handleSaveBox(context, name, state.selectedPokemon.map((p) => p.pokedexNumber).toList());
-                                                                            if (ok && mounted) Navigator.of(ctx).pop();
-                                                                            if (mounted) setLocalState(() => submitting = false);
+                                                                            if (ok && ctx.mounted) Navigator.of(ctx).pop();
+                                                                            setLocalState(() => submitting = false);
                                                                           },
                                                                     child: const Text('Save'),
                                                                   ),
@@ -635,6 +635,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                       ),
                                                     );
                                                     if (confirm == true) {
+                                                      if (!context.mounted) return;
                                                       context.read<PokemonListBloc>().add(ClearSelectedPokemon());
                                                     }
                                                   },
@@ -911,7 +912,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                             },
                                             onLongPress: () async {
                                               await FusionDetailsDialog.showForPokemon(context, pokemon);
-                                              if (mounted) FocusScope.of(context).unfocus();
+                                              if (context.mounted) FocusScope.of(context).unfocus();
                                             },
                                           );
                                         }, childCount: state.filteredPokemon.length),
@@ -1360,7 +1361,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                                   ),
                                                 );
                                                 if (confirm == true) {
-                                                  // ignore: use_build_context_synchronously
+                                                  if (!context.mounted) return;
                                                   context.read<PokemonListBloc>().add(ClearSelectedPokemon());
                                                 }
                                               },
@@ -1722,7 +1723,7 @@ class _PokemonSelectionPageState extends State<PokemonSelectionPage>
                                     onLongPress: () async {
                                       // Mostrar detalles del Pokemon individual
                                       await FusionDetailsDialog.showForPokemon(context, pokemon);
-                                      if (mounted) FocusScope.of(context).unfocus();
+                                      if (context.mounted) FocusScope.of(context).unfocus();
                                     },
                                   );
                                 }, childCount: state.filteredPokemon.length),

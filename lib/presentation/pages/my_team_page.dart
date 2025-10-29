@@ -94,7 +94,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
         headId: head.pokedexNumber,
         bodyId: body.pokedexNumber,
       );
-      if (!mounted) return;
+      if (!context.mounted) return;
       String message;
       switch (result) {
         case MyTeamService.resultAdded:
@@ -110,6 +110,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
         default:
           message = 'No se pudo añadir la fusión';
       }
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -117,10 +118,10 @@ class _MyTeamPageState extends State<MyTeamPage> {
     }
 
     final selected = await _chooseFusionDirection(head, body);
-    if (!mounted || selected == null) return;
+    if (!context.mounted || selected == null) return;
 
     final result = await MyTeamService.addFusion(headId: selected['head'] as int, bodyId: selected['body'] as int);
-    if (!mounted) return;
+    if (!context.mounted) return;
     if (result == MyTeamService.resultAdded) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Fusión añadida a tu equipo')),
@@ -251,7 +252,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                             headId: head.pokedexNumber,
                                             bodyId: body.pokedexNumber,
                                           );
-                                          if (!mounted) return;
+                                          if (!this.context.mounted || !context.mounted) return;
                                           String message;
                                           switch (result) {
                                             case MyTeamService.resultAdded:
@@ -312,7 +313,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
                                             headId: body.pokedexNumber,
                                             bodyId: head.pokedexNumber,
                                           );
-                                          if (!mounted) return;
+                                          if (!this.context.mounted || !context.mounted) return;
                                           String message;
                                           switch (result) {
                                             case MyTeamService.resultAdded:
@@ -354,7 +355,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
       },
     );
   }
-
+  // ignore: unused_element
   Widget _fusionChoiceCard({
     required String title,
     required SpriteData? sprite,
@@ -583,10 +584,10 @@ class _MyTeamPageState extends State<MyTeamPage> {
                     final team = snapshot.data ?? const <Map<String, int>>[];
                     final bool canAddMore = team.length < 6;
                     return canAddMore
-                        ? FloatingActionButton(
+    ? FloatingActionButton(
                             onPressed: _startAddFlow,
-                            child: const Icon(Icons.add),
                             tooltip: 'Añadir fusión',
+                            child: const Icon(Icons.add),
                           )
                         : const SizedBox.shrink();
                   },
@@ -913,6 +914,7 @@ class _MyTeamPageState extends State<MyTeamPage> {
   }
 }
 
+// ignore: unused_element
 class _TypeCoverageTile extends StatelessWidget {
   final String type;
   final List<Fusion> resistant;
@@ -1011,6 +1013,7 @@ class _TypeCoverageTile extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _FusionThumb extends StatelessWidget {
   final Fusion fusion;
   const _FusionThumb({required this.fusion});
@@ -1048,7 +1051,7 @@ Widget _typeChipSmall(String type) {
     decoration: BoxDecoration(
       color: PokemonTypeColors.getTypeColor(type),
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.white.withOpacity(0.12)),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
     ),
     child: Text(
       type,
@@ -1172,6 +1175,7 @@ class _TeamRowState extends State<_TeamRow> {
     }
   }
 
+  // ignore: unused_element
   Future<void> _openVariantPicker() async {
     final headId = widget.fusion.headPokemon.pokedexNumber;
     final bodyId = widget.fusion.bodyPokemon.pokedexNumber;

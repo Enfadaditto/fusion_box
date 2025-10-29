@@ -111,7 +111,7 @@ class _FusionCompareCardMediumState extends State<FusionCompareCardMedium> {
                         final headId = widget.fusion.headPokemon.pokedexNumber;
                         final bodyId = widget.fusion.bodyPokemon.pokedexNumber;
                         final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         String message;
                         switch (result) {
                           case MyTeamService.resultAdded:
@@ -132,7 +132,7 @@ class _FusionCompareCardMediumState extends State<FusionCompareCardMedium> {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
+                          color: Colors.black.withValues(alpha: 0.35),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         padding: const EdgeInsets.all(6),
@@ -271,7 +271,7 @@ class _FusionCompareCardSmallState extends State<FusionCompareCardSmall> {
                         final headId = widget.fusion.headPokemon.pokedexNumber;
                         final bodyId = widget.fusion.bodyPokemon.pokedexNumber;
                         final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         String message;
                         switch (result) {
                           case MyTeamService.resultAdded:
@@ -292,7 +292,7 @@ class _FusionCompareCardSmallState extends State<FusionCompareCardSmall> {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
+                          color: Colors.black.withValues(alpha: 0.35),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         padding: const EdgeInsets.all(6),

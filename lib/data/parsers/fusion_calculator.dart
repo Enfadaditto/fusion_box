@@ -356,7 +356,7 @@ class FusionCalculator {
       return sprite;
     } catch (e, s) {
       await logger.logError(
-        Exception('getSpecificFusionSpriteFromSpritesheet failed for headId=$headId bodyId=$bodyId variant=$variant path=${spritesheetPath} error=$e'),
+        Exception('getSpecificFusionSpriteFromSpritesheet failed for headId=$headId bodyId=$bodyId variant=$variant path=$spritesheetPath error=$e'),
         s,
       );
       return null;

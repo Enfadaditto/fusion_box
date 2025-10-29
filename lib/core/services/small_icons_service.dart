@@ -95,7 +95,7 @@ class SmallIconsService {
       }
       final response = await http.get(Uri.parse(
         kIsWeb && iconUrl.startsWith('https://raw.githubusercontent.com')
-            ? 'https://images.weserv.nl/?url=' + iconUrl.replaceFirst('https://', '')
+            ? 'https://images.weserv.nl/?url=${iconUrl.replaceFirst('https://', '')}'
             : iconUrl,
       ));
       if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {

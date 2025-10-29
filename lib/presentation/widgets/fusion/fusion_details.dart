@@ -141,7 +141,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
                   decoration: BoxDecoration(
                     color: PokemonTypeColors.getTypeColor(t),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                   ),
                   child: Text(
                     t,
@@ -161,7 +161,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
       decoration: BoxDecoration(
         color: PokemonTypeColors.getTypeColor(type),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Text(
         type,
@@ -234,7 +234,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         capturedGridBloc = null;
       }
     }
-    if (!mounted) return;
+    if (!context.mounted) return;
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey[900],
@@ -248,7 +248,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         initial: _currentSprite ?? widget.fusion!.primarySprite,
         onSelected: (sel) async {
           await PreferredSpriteService.setPreferredVariant(headId, bodyId, sel.variant);
-          if (!mounted) return;
+          if (!context.mounted) return;
           setState(() {
             _currentSprite = sel;
           });
@@ -304,7 +304,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         widget.fusion!.headPokemon,
         widget.fusion!.bodyPokemon,
       );
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _abilities = combined;
         _isLoadingAbilities = false;
@@ -316,7 +316,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           s,
         );
       } catch (_) {}
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _abilities = const {};
         _isLoadingAbilities = false;
@@ -328,7 +328,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
     try {
       final loader = PokemonEnrichmentLoader();
       final list = await loader.getAbilitiesOfPokemon(widget.pokemon!);
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _abilities = list.toSet();
         _isLoadingAbilities = false;
@@ -340,7 +340,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           s,
         );
       } catch (_) {}
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _abilities = const {};
         _isLoadingAbilities = false;
@@ -352,7 +352,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
     try {
       final loader = PokemonEnrichmentLoader();
       final list = await loader.getMovesWithLevelsOfPokemon(widget.pokemon!);
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _moves = list;
         _isLoadingMoves = false;
@@ -364,7 +364,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
           s,
         );
       } catch (_) {}
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _moves = const [];
         _isLoadingMoves = false;
@@ -379,7 +379,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
         widget.fusion!.headPokemon,
         widget.fusion!.bodyPokemon,
       );
-      if (!mounted) return;
+      if (!context.mounted) return;
       setState(() {
         _moves = combined;
         _isLoadingMoves = false;
@@ -762,7 +762,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
                       final headId = widget.fusion!.headPokemon.pokedexNumber;
                       final bodyId = widget.fusion!.bodyPokemon.pokedexNumber;
                       final result = await MyTeamService.addFusion(headId: headId, bodyId: bodyId);
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       String message;
                       switch (result) {
                         case MyTeamService.resultAdded:
@@ -783,7 +783,7 @@ class _FusionDetailsContentState extends State<FusionDetailsContent> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.35),
+                        color: Colors.black.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       padding: const EdgeInsets.all(6),

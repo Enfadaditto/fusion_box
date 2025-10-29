@@ -27,7 +27,6 @@ class _FusionVariantPickerSheetState extends State<FusionVariantPickerSheet> {
   List<SpriteData> _variants = const [];
   SpriteData? _tempSelection;
   bool _isLoading = true;
-  bool _hasTried = false;
   int _currentIndex = 0;
 
   @override
@@ -56,7 +55,6 @@ class _FusionVariantPickerSheetState extends State<FusionVariantPickerSheet> {
     setState(() {
       _variants = variants;
       _isLoading = false;
-      _hasTried = true;
       if (_variants.isNotEmpty) {
         int initialIndex = 0;
         if (widget.initial != null) {
